@@ -30,20 +30,27 @@ st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide
 # 커스텀 CSS 추가
 st.markdown("""
 <style>
-    .stChatMessage {
+    .stApp {
         background-color: #f0f0f0;
-        border-radius: 15px;
+    }
+    .stChatMessage {
         padding: 10px;
         margin: 5px 0;
+        border-radius: 15px;
+        max-width: 70%;
     }
     .stChatMessage.user {
-        background-color: #e6f3ff;
+        background-color: #fee500;
+        margin-left: auto;
+        margin-right: 10px;
     }
     .stChatMessage.assistant {
-        background-color: #f0f7e6;
+        background-color: #ffffff;
+        margin-right: auto;
+        margin-left: 10px;
     }
-    .stApp {
-        background-image: linear-gradient(to bottom, #ffffff, #f0f0f0);
+    .chat-content {
+        white-space: pre-wrap;
     }
     @keyframes spin {
         0% { transform: rotate(0deg); }
@@ -64,9 +71,6 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         padding: 10px;
-    }
-    .chat-content {
-        white-space: pre-wrap;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -98,13 +102,13 @@ if st.session_state.thread_id[selected_monk] is None:
 
 # 채팅 메시지 표시
 for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks.get(selected_monk) if message["role"] == "assistant" else "👤"):
+    with st.chat_message(message["role"], avatar=monks.get(selected_monk) if message["role"] == "assistant" else None):
         st.markdown(f'<div class="chat-content">{message["content"]}</div>', unsafe_allow_html=True)
 
 # 사용자 입력 처리
 if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="👤"):
+    with st.chat_message("user"):
         st.markdown(prompt)
 
     try:
