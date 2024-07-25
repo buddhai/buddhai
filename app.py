@@ -17,7 +17,7 @@ vector_store_id = st.secrets["vector_store"]["id"]
 client = OpenAI(api_key=api_key)
 
 # 스님 목록 (모두 동일한 assistant를 사용)
-monks = ["진우스님 (vs)", "꽃스님", "혜민스님", "법정스님", "성륜스님"]
+monks = ["진우스님", "꽃스님", "혜민스님", "법정스님", "성륜스님"]
 
 # Streamlit 페이지 설정
 st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
@@ -33,15 +33,9 @@ st.title(f"{selected_monk}과의 대화")
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
-    st.session_state.messages = {}
+    st.session_state.messages = {monk: [] for monk in monks}
 if "thread_id" not in st.session_state:
-    st.session_state.thread_id = {}
-
-for monk in monks:
-    if monk not in st.session_state.messages:
-        st.session_state.messages[monk] = []
-    if monk not in st.session_state.thread_id:
-        st.session_state.thread_id[monk] = None
+    st.session_state.thread_id = {monk: None for monk in monks}
 
 # Thread 생성 함수
 def create_thread():
