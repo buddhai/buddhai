@@ -16,17 +16,14 @@ vector_store_id = st.secrets["vector_store"]["id"]
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
 
-# 스님 목록 (모두 동일한 assistant를 사용)
+# 스님 목록
 monks = ["진우스님", "꽃스님", "혜민스님", "법정스님", "성륜스님"]
 
 # Streamlit 페이지 설정
 st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
 
 # 사이드바에 스님 선택 옵션 추가
-selected_monk = st.sidebar.selectbox(
-    "대화할 스님을 선택하세요",
-    monks
-)
+selected_monk = st.sidebar.selectbox("대화할 스님을 선택하세요", monks)
 
 # 메인 영역 설정
 st.title(f"{selected_monk}과의 대화")
@@ -39,8 +36,12 @@ if "thread_id" not in st.session_state:
 
 # Thread 생성 함수
 def create_thread():
-    thread = client.beta.threads.create()
-    return thread.id
+    try:
+        thread = client.beta.threads.create()
+        return thread.id
+    except Exception as e:
+        logger.error(f"Thread creation failed: {str(e)}")
+        return None
 
 # 인용 마커 제거 함수
 def remove_citation_markers(text):
@@ -75,19 +76,19 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
             "assistant_id": assistant_id,
         }
 
-        # Vector store ID가 있으면 추가
+        # Vector store ID가 있으면 file_search 도구 추가
         if vector_store_id:
-            run_params["tools"] = [{"type": "retrieval"}]
+            run_params["tools"] = [{"type": "file_search"}]
 
         logger.info(f"Creating run with params: {run_params}")
         run = client.beta.threads.runs.create(**run_params)
 
-        # 응답 대기 및 표시 (improved streaming)
+        # 응답 대기 및 표시
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
             
-            while run.status != "completed":
+            while run.status not in ["completed", "failed"]:
                 run = client.beta.threads.runs.retrieve(
                     thread_id=st.session_state.thread_id[selected_monk],
                     run_id=run.id
@@ -95,34 +96,29 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                 if run.status == "completed":
                     messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
                     new_message = messages.data[0].content[0].text.value
-                    new_message = remove_citation_markers(new_message)  # 인용 마커 제거
+                    new_message = remove_citation_markers(new_message)
                     
-                    # Stream response with proper line breaks and paragraphs
+                    # Stream response
                     lines = new_message.split('\n')
-                    for i, line in enumerate(lines):
-                        if line.strip() == "":
-                            # Empty line indicates a new paragraph
-                            full_response += '\n\n'
-                        else:
-                            full_response += line + '\n'
-                        
-                        time.sleep(0.05)  # Adjust the speed as needed
-                        # Use HTML to preserve formatting
+                    for line in lines:
+                        full_response += line + '\n'
+                        time.sleep(0.05)
                         message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
                     
                     message_placeholder.markdown(full_response, unsafe_allow_html=True)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
+                    logger.error(f"Run failed: {run.last_error}")
                     break
                 else:
-                    time.sleep(0.5)  # Wait before checking again
+                    time.sleep(0.5)
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
-        st.error(f"An error occurred: {str(e)}")
+        st.error(f"오류가 발생했습니다: {str(e)}")
 
 # 채팅 초기화 버튼
 if st.sidebar.button("대화 초기화"):
