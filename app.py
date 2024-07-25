@@ -57,8 +57,6 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
             "thread_id": st.session_state.thread_id,
             "assistant_id": assistant_id,
         }
-        if vector_store_id:
-            run_params["tool_resources"] = {"file_search": {"vector_store_ids": [vector_store_id]}}
 
         logger.info(f"Creating run with params: {run_params}")
         run = client.beta.threads.runs.create(**run_params)
