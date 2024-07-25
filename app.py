@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import logging
+import time
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -61,7 +62,7 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
         logger.info(f"Creating run with params: {run_params}")
         run = client.beta.threads.runs.create(**run_params)
 
-        # 응답 대기 및 표시
+        # 응답 대기 및 표시 (streaming)
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
@@ -73,9 +74,21 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
                 )
                 if run.status == "completed":
                     messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id)
-                    full_response = messages.data[0].content[0].text.value
+                    new_message = messages.data[0].content[0].text.value
+                    
+                    # Simulate streaming by showing the response word by word
+                    for word in new_message.split():
+                        full_response += word + " "
+                        time.sleep(0.05)  # Adjust the speed as needed
+                        message_placeholder.markdown(full_response + "▌")
+                    
                     message_placeholder.markdown(full_response)
                     break
+                elif run.status == "failed":
+                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
+                    break
+                else:
+                    time.sleep(0.5)  # Wait before checking again
 
         st.session_state.messages.append({"role": "assistant", "content": full_response})
 
