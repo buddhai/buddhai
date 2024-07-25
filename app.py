@@ -1,7 +1,6 @@
 import streamlit as st
 from openai import OpenAI
 import logging
-import time
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -53,19 +52,16 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
             content=prompt
         )
 
-        # Vector store에서 파일 ID 가져오기
-        files = client.files.list()
-        file_ids = [file.id for file in files.data if file.purpose == "assistants"]
+        # run 생성
+        run_params = {
+            "thread_id": st.session_state.thread_id,
+            "assistant_id": assistant_id,
+        }
 
-        # run 생성 (file_ids 포함)
-        run = client.beta.threads.runs.create(
-            thread_id=st.session_state.thread_id,
-            assistant_id=assistant_id,
-            tools=[{"type": "retrieval"}],  # retrieval 도구 추가
-            file_ids=file_ids  # 파일 ID 목록 전달
-        )
+        logger.info(f"Creating run with params: {run_params}")
+        run = client.beta.threads.runs.create(**run_params)
 
-        # 응답 대기 및 표시 (streaming)
+        # 응답 대기 및 표시
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
@@ -76,30 +72,16 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
                     run_id=run.id
                 )
                 if run.status == "completed":
-                    messages = client.beta.threads.messages.list(
-                        thread_id=st.session_state.thread_id
-                    )
-                    new_message = messages.data[0].content[0].text.value
-                    
-                    # Simulate streaming by showing the response word by word
-                    for word in new_message.split():
-                        full_response += word + " "
-                        time.sleep(0.05)  # Adjust the speed as needed
-                        message_placeholder.markdown(full_response + "▌")
-                    
+                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id)
+                    full_response = messages.data[0].content[0].text.value
                     message_placeholder.markdown(full_response)
                     break
-                elif run.status == "failed":
-                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
-                    break
-                else:
-                    time.sleep(0.5)  # Wait before checking again
 
         st.session_state.messages.append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
-        st.error(f"오류가 발생했습니다: {str(e)}")
+        st.error(f"An error occurred: {str(e)}")
 
 # 채팅 초기화 버튼
 if st.button("대화 초기화"):
