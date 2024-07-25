@@ -149,15 +149,16 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     # 실시간 스트리밍 시뮬레이션
                     for chunk in new_message.split():
                         full_response += chunk + " "
-                        message_placeholder.markdown(full_response + "▌")
+                        # 줄바꿈 유지를 위해 두 개의 공백으로 줄 끝을 처리
+                        formatted_response = full_response.replace("\n", "  \n")
+                        message_placeholder.markdown(formatted_response + "▌")
                         time.sleep(0.05)
                     
                     # 마지막 메시지 ID 저장
                     st.session_state.messages[selected_monk][-1]["message_id"] = messages.data[-1].id
                     
-                    # 줄바꿈 유지
-                    full_response = full_response.replace('\n', '<br>')
-                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
+                    # 최종 메시지 표시 (줄바꿈 유지)
+                    message_placeholder.markdown(formatted_response)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
@@ -166,7 +167,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                 else:
                     time.sleep(0.5)
 
-        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+        st.session_state.messages[selected_monk].append({"role": "assistant", "content": formatted_response})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
