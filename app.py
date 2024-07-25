@@ -1,7 +1,6 @@
 import streamlit as st
 from openai import OpenAI
 import logging
-import time
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -95,8 +94,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         # run 생성
         run = client.beta.threads.runs.create(
             thread_id=st.session_state.thread_id[selected_monk],
-            assistant_id=assistant_id,
-            stream=True
+            assistant_id=assistant_id
         )
 
         # 응답 스트리밍 및 표시
@@ -104,17 +102,26 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
             message_placeholder = st.empty()
             full_response = ""
             
-            for chunk in client.beta.threads.runs.stream(
-                thread_id=st.session_state.thread_id[selected_monk],
-                run_id=run.id
-            ):
-                if chunk.choices[0].delta.content is not None:
-                    full_response += chunk.choices[0].delta.content
-                    message_placeholder.markdown(full_response + "▌")
+            while run.status != "completed":
+                run = client.beta.threads.runs.retrieve(
+                    thread_id=st.session_state.thread_id[selected_monk],
+                    run_id=run.id
+                )
                 
-                if chunk.choices[0].finish_reason == "stop":
+                if run.status == "completed":
+                    messages = client.beta.threads.messages.list(
+                        thread_id=st.session_state.thread_id[selected_monk]
+                    )
+                    
+                    new_message = messages.data[0].content[0].text.value
+                    full_response += new_message
                     message_placeholder.markdown(full_response)
+                elif run.status == "failed":
+                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
                     break
+                else:
+                    message_placeholder.markdown(full_response + "▌")
+                    st.experimental_rerun()
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
