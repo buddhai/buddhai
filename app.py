@@ -2,7 +2,6 @@ import streamlit as st
 from openai import OpenAI
 import logging
 import time
-import re
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -70,10 +69,6 @@ def create_thread():
         logger.error(f"Thread creation failed: {str(e)}")
         return None
 
-# 인용 마커 제거 함수
-def remove_citation_markers(text):
-    return re.sub(r'【\d+:\d+†source】', '', text)
-
 # Thread 초기화
 if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
@@ -98,48 +93,28 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         )
 
         # run 생성
-        run_params = {
-            "thread_id": st.session_state.thread_id[selected_monk],
-            "assistant_id": assistant_id,
-        }
+        run = client.beta.threads.runs.create(
+            thread_id=st.session_state.thread_id[selected_monk],
+            assistant_id=assistant_id,
+            stream=True
+        )
 
-        # Vector store ID가 있으면 file_search 도구 추가
-        if vector_store_id:
-            run_params["tools"] = [{"type": "file_search"}]
-
-        logger.info(f"Creating run with params: {run_params}")
-        run = client.beta.threads.runs.create(**run_params)
-
-        # 응답 대기 및 표시
+        # 응답 스트리밍 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
             full_response = ""
             
-            while run.status not in ["completed", "failed"]:
-                run = client.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id[selected_monk],
-                    run_id=run.id
-                )
-                if run.status == "completed":
-                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
-                    new_message = messages.data[0].content[0].text.value
-                    new_message = remove_citation_markers(new_message)
-                    
-                    # Stream response
-                    lines = new_message.split('\n')
-                    for line in lines:
-                        full_response += line + '\n'
-                        time.sleep(0.05)
-                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
-                    
-                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
+            for chunk in client.beta.threads.runs.stream(
+                thread_id=st.session_state.thread_id[selected_monk],
+                run_id=run.id
+            ):
+                if chunk.choices[0].delta.content is not None:
+                    full_response += chunk.choices[0].delta.content
+                    message_placeholder.markdown(full_response + "▌")
+                
+                if chunk.choices[0].finish_reason == "stop":
+                    message_placeholder.markdown(full_response)
                     break
-                elif run.status == "failed":
-                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
-                    logger.error(f"Run failed: {run.last_error}")
-                    break
-                else:
-                    time.sleep(0.5)
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
