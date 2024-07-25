@@ -16,14 +16,41 @@ vector_store_id = st.secrets["vector_store"]["id"]
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
 
-# 스님 목록
-monks = ["진우스님", "꽃스님", "혜민스님", "법정스님", "성륜스님"]
+# 스님 목록과 아이콘
+monks = {
+    "진우스님": "🧘",
+    "꽃스님": "🌸",
+    "혜민스님": "☯️",
+    "법정스님": "📿",
+    "성륜스님": "🕉️"
+}
 
 # Streamlit 페이지 설정
 st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
 
+# 커스텀 CSS 추가
+st.markdown("""
+<style>
+    .stChatMessage {
+        background-color: #f0f0f0;
+        border-radius: 15px;
+        padding: 10px;
+        margin: 5px 0;
+    }
+    .stChatMessage.user {
+        background-color: #e6f3ff;
+    }
+    .stChatMessage.assistant {
+        background-color: #f0f7e6;
+    }
+    .stApp {
+        background-image: linear-gradient(to bottom, #ffffff, #f0f0f0);
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # 사이드바에 스님 선택 옵션 추가
-selected_monk = st.sidebar.selectbox("대화할 스님을 선택하세요", monks)
+selected_monk = st.sidebar.selectbox("대화할 스님을 선택하세요", list(monks.keys()))
 
 # 메인 영역 설정
 st.title(f"{selected_monk}과의 대화")
@@ -53,13 +80,13 @@ if st.session_state.thread_id[selected_monk] is None:
 
 # 채팅 메시지 표시
 for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"]):
+    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
         st.markdown(message["content"])
 
 # 사용자 입력 처리
 if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
     try:
@@ -84,7 +111,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         run = client.beta.threads.runs.create(**run_params)
 
         # 응답 대기 및 표시
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
             full_response = ""
             
