@@ -46,6 +46,20 @@ st.markdown("""
     .stApp {
         background-image: linear-gradient(to bottom, #ffffff, #f0f0f0);
     }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        border-top: 3px solid #000;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -113,6 +127,15 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
+            
+            # "답변을 생각하는 중......" 메시지와 로딩 애니메이션 표시
+            message_placeholder.markdown("""
+            <div style="display: flex; align-items: center;">
+                <div class="loading-spinner"></div>
+                답변을 생각하는 중......
+            </div>
+            """, unsafe_allow_html=True)
+            
             full_response = ""
             
             while run.status not in ["completed", "failed"]:
