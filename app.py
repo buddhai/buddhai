@@ -31,20 +31,57 @@ st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide
 # 커스텀 CSS 추가
 st.markdown("""
 <style>
-    .stChatMessage {
-        background-color: #f0f0f0;
-        border-radius: 15px;
-        padding: 10px;
-        margin: 5px 0;
-    }
-    .stChatMessage.user {
-        background-color: #e6f3ff;
-    }
-    .stChatMessage.assistant {
-        background-color: #f0f7e6;
-    }
     .stApp {
-        background-image: linear-gradient(to bottom, #ffffff, #f0f0f0);
+        background-color: #f0f0f0;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+    .chat-container {
+        background-color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .chat-message {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    .chat-message.user {
+        justify-content: flex-end;
+    }
+    .chat-bubble {
+        max-width: 70%;
+        padding: 10px 15px;
+        border-radius: 20px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .chat-bubble.user {
+        background-color: #DCF8C6;
+    }
+    .chat-bubble.assistant {
+        background-color: #E5E5EA;
+    }
+    .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        margin: 0 10px;
+    }
+    .stTextInput {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 40px);
+        max-width: 760px;
     }
     @keyframes spin {
         0% { transform: rotate(0deg); }
@@ -92,17 +129,33 @@ def remove_citation_markers(text):
 if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
 
+# 채팅 컨테이너 시작
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+
 # 채팅 메시지 표시
 for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
-        st.markdown(message["content"])
+    if message["role"] == "user":
+        st.markdown(f"""
+        <div class="chat-message user">
+            <div class="chat-bubble user">{message["content"]}</div>
+            <div class="avatar">👤</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="chat-message assistant">
+            <div class="avatar">{monks[selected_monk]}</div>
+            <div class="chat-bubble assistant">{message["content"]}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# 채팅 컨테이너 종료
+st.markdown('</div>', unsafe_allow_html=True)
 
 # 사용자 입력 처리
-if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
+if prompt := st.text_input(f"{selected_monk}에게 질문하세요", key="user_input"):
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="👤"):
-        st.markdown(prompt)
-
+    
     try:
         # Assistant에 메시지 전송
         client.beta.threads.messages.create(
@@ -125,14 +178,16 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         run = client.beta.threads.runs.create(**run_params)
 
         # 응답 대기 및 표시
-        with st.chat_message("assistant", avatar=monks[selected_monk]):
-            message_placeholder = st.empty()
-            
-            # "답변을 생각하는 중......" 메시지와 로딩 애니메이션 표시
-            message_placeholder.markdown("""
-            <div style="display: flex; align-items: center;">
-                <div class="loading-spinner"></div>
-                답변을 생각하는 중......
+        with st.empty():
+            st.markdown(f"""
+            <div class="chat-message assistant">
+                <div class="avatar">{monks[selected_monk]}</div>
+                <div class="chat-bubble assistant">
+                    <div style="display: flex; align-items: center;">
+                        <div class="loading-spinner"></div>
+                        답변을 생각하는 중......
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
             
@@ -147,15 +202,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
                     new_message = messages.data[0].content[0].text.value
                     new_message = remove_citation_markers(new_message)
-                    
-                    # Stream response
-                    lines = new_message.split('\n')
-                    for line in lines:
-                        full_response += line + '\n'
-                        time.sleep(0.05)
-                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
-                    
-                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
+                    full_response = new_message
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
@@ -164,11 +211,21 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                 else:
                     time.sleep(0.5)
 
+            st.markdown(f"""
+            <div class="chat-message assistant">
+                <div class="avatar">{monks[selected_monk]}</div>
+                <div class="chat-bubble assistant">{full_response}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
         st.error(f"오류가 발생했습니다: {str(e)}")
+
+    # 입력 필드 초기화
+    st.session_state.user_input = ""
 
 # 채팅 초기화 버튼
 if st.sidebar.button("대화 초기화"):
