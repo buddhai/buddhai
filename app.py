@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 # Streamlit secrets에서 설정한 시크릿 값을 사용
 api_key = st.secrets["openai"]["api_key"]
 assistant_id = st.secrets["assistant"]["id"]
+vector_store_id = st.secrets["vector_store"]["id"]
+
 
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
