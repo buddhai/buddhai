@@ -121,7 +121,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         run = client.beta.threads.runs.create(
             thread_id=st.session_state.thread_id[selected_monk],
             assistant_id=assistant_id,
-            tools=[{"type": "retrieval"}] if vector_store_id else []
+            tools=[{"type": "file_search"}] if vector_store_id else []
         )
 
         with st.chat_message("assistant", avatar=monks.get(selected_monk)):
