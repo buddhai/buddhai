@@ -62,7 +62,7 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
         logger.info(f"Creating run with params: {run_params}")
         run = client.beta.threads.runs.create(**run_params)
 
-        # 응답 대기 및 표시 (streaming)
+        # 응답 대기 및 표시 (improved streaming)
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
@@ -76,13 +76,20 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
                     messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id)
                     new_message = messages.data[0].content[0].text.value
                     
-                    # Simulate streaming by showing the response word by word
-                    for word in new_message.split():
-                        full_response += word + " "
+                    # Stream response with proper line breaks and paragraphs
+                    lines = new_message.split('\n')
+                    for i, line in enumerate(lines):
+                        if line.strip() == "":
+                            # Empty line indicates a new paragraph
+                            full_response += '\n\n'
+                        else:
+                            full_response += line + '\n'
+                        
                         time.sleep(0.05)  # Adjust the speed as needed
-                        message_placeholder.markdown(full_response + "▌")
+                        # Use HTML to preserve formatting
+                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
                     
-                    message_placeholder.markdown(full_response)
+                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
