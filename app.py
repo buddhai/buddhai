@@ -2,6 +2,7 @@ import streamlit as st
 from openai import OpenAI
 import logging
 import time
+import re
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 # Streamlit secrets에서 설정한 시크릿 값을 사용
 api_key = st.secrets["openai"]["api_key"]
 assistant_id = st.secrets["assistant"]["id"]
-vector_store_id = st.secrets["vector_store"].get("id")
+vector_store_id = st.secrets["vector_store"]["id"]
 
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
@@ -30,27 +31,20 @@ st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide
 # 커스텀 CSS 추가
 st.markdown("""
 <style>
-    .stApp {
-        background-color: #f0f0f0;
-    }
     .stChatMessage {
+        background-color: #f0f0f0;
+        border-radius: 15px;
         padding: 10px;
         margin: 5px 0;
-        border-radius: 15px;
-        max-width: 70%;
     }
     .stChatMessage.user {
-        background-color: #fee500;
-        margin-left: auto;
-        margin-right: 10px;
+        background-color: #e6f3ff;
     }
     .stChatMessage.assistant {
-        background-color: #ffffff;
-        margin-right: auto;
-        margin-left: 10px;
+        background-color: #f0f7e6;
     }
-    .chat-content {
-        white-space: pre-wrap;
+    .stApp {
+        background-image: linear-gradient(to bottom, #ffffff, #f0f0f0);
     }
     @keyframes spin {
         0% { transform: rotate(0deg); }
@@ -65,12 +59,6 @@ st.markdown("""
         border-top: 3px solid #000;
         animation: spin 1s linear infinite;
         margin-right: 10px;
-    }
-    .loading-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -96,19 +84,23 @@ def create_thread():
         logger.error(f"Thread creation failed: {str(e)}")
         return None
 
+# 인용 마커 제거 함수
+def remove_citation_markers(text):
+    return re.sub(r'【\d+:\d+†source】', '', text)
+
 # Thread 초기화
 if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
 
 # 채팅 메시지 표시
 for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks.get(selected_monk) if message["role"] == "assistant" else None):
-        st.markdown(f'<div class="chat-content">{message["content"]}</div>', unsafe_allow_html=True)
+    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
+        st.markdown(message["content"])
 
 # 사용자 입력 처리
 if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
     try:
@@ -120,20 +112,27 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         )
 
         # run 생성
-        run = client.beta.threads.runs.create(
-            thread_id=st.session_state.thread_id[selected_monk],
-            assistant_id=assistant_id,
-            tools=[{"type": "file_search"}] if vector_store_id else []
-        )
+        run_params = {
+            "thread_id": st.session_state.thread_id[selected_monk],
+            "assistant_id": assistant_id,
+        }
 
-        with st.chat_message("assistant", avatar=monks.get(selected_monk)):
+        # Vector store ID가 있으면 file_search 도구 추가
+        if vector_store_id:
+            run_params["tools"] = [{"type": "file_search"}]
+
+        logger.info(f"Creating run with params: {run_params}")
+        run = client.beta.threads.runs.create(**run_params)
+
+        # 응답 대기 및 표시
+        with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
             
-            # "답변을 생성하는 중..." 메시지와 로딩 애니메이션 표시
+            # "답변을 생각하는 중......" 메시지와 로딩 애니메이션 표시
             message_placeholder.markdown("""
-            <div class="loading-container">
+            <div style="display: flex; align-items: center;">
                 <div class="loading-spinner"></div>
-                답변을 생성하는 중...
+                답변을 생각하는 중......
             </div>
             """, unsafe_allow_html=True)
             
@@ -145,30 +144,18 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     run_id=run.id
                 )
                 if run.status == "completed":
-                    messages = client.beta.threads.messages.list(
-                        thread_id=st.session_state.thread_id[selected_monk],
-                        order="asc",
-                        after=st.session_state.messages[selected_monk][-1].get("message_id", "")
-                    )
+                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
+                    new_message = messages.data[0].content[0].text.value
+                    new_message = remove_citation_markers(new_message)
                     
-                    new_message = messages.data[-1].content[0].text.value
-                    
-                    # Stream response with proper line breaks and paragraphs
+                    # Stream response
                     lines = new_message.split('\n')
-                    for i, line in enumerate(lines):
-                        if line.strip() == "":
-                            # Empty line indicates a new paragraph
-                            full_response += '\n\n'
-                        else:
-                            full_response += line + '\n'
-                        message_placeholder.markdown(f'<div class="chat-content">{full_response}▌</div>', unsafe_allow_html=True)
+                    for line in lines:
+                        full_response += line + '\n'
                         time.sleep(0.05)
+                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
                     
-                    # 마지막 메시지 ID 저장
-                    st.session_state.messages[selected_monk][-1]["message_id"] = messages.data[-1].id
-                    
-                    # 최종 메시지 표시
-                    message_placeholder.markdown(f'<div class="chat-content">{full_response}</div>', unsafe_allow_html=True)
+                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
