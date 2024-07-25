@@ -3,8 +3,6 @@ from openai import OpenAI
 import logging
 import time
 import re
-from typing_extensions import override
-from openai import AssistantEventHandler
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -13,7 +11,7 @@ logger = logging.getLogger(__name__)
 # Streamlit secrets에서 설정한 시크릿 값을 사용
 api_key = st.secrets["openai"]["api_key"]
 assistant_id = st.secrets["assistant"]["id"]
-vector_store_id = st.secrets["vector_store"].get("id")  # .get() 메소드 사용
+vector_store_id = st.secrets["vector_store"].get("id")
 
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
@@ -30,7 +28,46 @@ monks = {
 # Streamlit 페이지 설정
 st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
 
-# (이전의 CSS 스타일 설정 유지)
+# 커스텀 CSS 추가
+st.markdown("""
+<style>
+    .stChatMessage {
+        background-color: #f0f0f0;
+        border-radius: 15px;
+        padding: 10px;
+        margin: 5px 0;
+    }
+    .stChatMessage.user {
+        background-color: #e6f3ff;
+    }
+    .stChatMessage.assistant {
+        background-color: #f0f7e6;
+    }
+    .stApp {
+        background-image: linear-gradient(to bottom, #ffffff, #f0f0f0);
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        border-top: 3px solid #000;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
+    .loading-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # 사이드바에 스님 선택 옵션을 라디오 버튼으로 추가
 selected_monk = st.sidebar.radio("대화할 스님을 선택하세요", list(monks.keys()))
@@ -66,21 +103,6 @@ for message in st.session_state.messages[selected_monk]:
     with st.chat_message(message["role"], avatar=monks.get(selected_monk) if message["role"] == "assistant" else "👤"):
         st.markdown(message["content"])
 
-# EventHandler 클래스 정의
-class StreamHandler(AssistantEventHandler):
-    def __init__(self, placeholder):
-        self.placeholder = placeholder
-        self.full_response = ""
-
-    @override
-    def on_text_created(self, text) -> None:
-        self.full_response = ""
-
-    @override
-    def on_text_delta(self, delta, snapshot):
-        self.full_response += delta.value
-        self.placeholder.markdown(self.full_response + "▌", unsafe_allow_html=True)
-
 # 사용자 입력 처리
 if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
@@ -96,38 +118,49 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         )
 
         # run 생성
-        run_params = {
-            "thread_id": st.session_state.thread_id[selected_monk],
-            "assistant_id": assistant_id,
-        }
-
-        # Vector store ID가 있으면 file_search 도구 추가
-        if vector_store_id:
-            run_params["tools"] = [{"type": "file_search"}]
-
-        logger.info(f"Creating run with params: {run_params}")
+        run = client.beta.threads.runs.create(
+            thread_id=st.session_state.thread_id[selected_monk],
+            assistant_id=assistant_id,
+            tools=[{"type": "retrieval"}] if vector_store_id else []
+        )
 
         with st.chat_message("assistant", avatar=monks.get(selected_monk)):
             message_placeholder = st.empty()
-            stream_handler = StreamHandler(message_placeholder)
-
+            
             # "답변을 생성하는 중..." 메시지와 로딩 애니메이션 표시
             message_placeholder.markdown("""
-            <div style="display: flex; align-items: center;">
+            <div class="loading-container">
                 <div class="loading-spinner"></div>
                 답변을 생성하는 중...
             </div>
             """, unsafe_allow_html=True)
-
-            with client.beta.threads.runs.stream(
-                **run_params,
-                event_handler=stream_handler,
-            ) as stream:
-                stream.until_done()
-
-            # 최종 응답 표시
-            full_response = remove_citation_markers(stream_handler.full_response)
-            message_placeholder.markdown(full_response, unsafe_allow_html=True)
+            
+            full_response = ""
+            
+            while run.status not in ["completed", "failed"]:
+                run = client.beta.threads.runs.retrieve(
+                    thread_id=st.session_state.thread_id[selected_monk],
+                    run_id=run.id
+                )
+                if run.status == "completed":
+                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
+                    new_message = messages.data[0].content[0].text.value
+                    new_message = remove_citation_markers(new_message)
+                    
+                    # Stream response
+                    for chunk in new_message.split():
+                        full_response += chunk + " "
+                        time.sleep(0.05)
+                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
+                    
+                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
+                    break
+                elif run.status == "failed":
+                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
+                    logger.error(f"Run failed: {run.last_error}")
+                    break
+                else:
+                    time.sleep(0.5)
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
