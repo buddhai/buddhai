@@ -102,7 +102,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
             message_placeholder = st.empty()
             full_response = ""
             
-            while run.status != "completed":
+            while run.status not in ["completed", "failed"]:
                 run = client.beta.threads.runs.retrieve(
                     thread_id=st.session_state.thread_id[selected_monk],
                     run_id=run.id
@@ -116,12 +116,13 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     new_message = messages.data[0].content[0].text.value
                     full_response += new_message
                     message_placeholder.markdown(full_response)
+                    break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
                     break
                 else:
                     message_placeholder.markdown(full_response + "▌")
-                    st.experimental_rerun()
+                    st.empty()  # This triggers a rerun without clearing the entire app
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
