@@ -114,14 +114,22 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                         thread_id=st.session_state.thread_id[selected_monk]
                     )
                     new_message = messages.data[0].content[0].text.value
-                    full_response = new_message
+                    full_response += new_message
                     message_placeholder.markdown(full_response)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
                     break
                 elif run.status in ["queued", "in_progress"]:
-                    message_placeholder.markdown(full_response + "▌")
+                    # 생성 중인 메시지 확인
+                    messages = client.beta.threads.messages.list(
+                        thread_id=st.session_state.thread_id[selected_monk]
+                    )
+                    if messages.data:
+                        latest_message = messages.data[0].content[0].text.value
+                        if latest_message != full_response:
+                            full_response = latest_message
+                            message_placeholder.markdown(full_response + "▌")
                     time.sleep(0.1)  # 짧은 대기 시간 추가
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
