@@ -46,6 +46,20 @@ st.markdown("""
     .stApp {
         background-image: linear-gradient(to bottom, #ffffff, #f0f0f0);
     }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        border-top: 3px solid #000;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -101,7 +115,6 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         run_params = {
             "thread_id": st.session_state.thread_id[selected_monk],
             "assistant_id": assistant_id,
-            "stream": True  # 스트리밍 모드 활성화
         }
 
         # Vector store ID가 있으면 file_search 도구 추가
@@ -114,19 +127,42 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
+            
+            # "답변을 생각하는 중......" 메시지와 로딩 애니메이션 표시
+            message_placeholder.markdown("""
+            <div style="display: flex; align-items: center;">
+                <div class="loading-spinner"></div>
+                답변을 생각하는 중......
+            </div>
+            """, unsafe_allow_html=True)
+            
             full_response = ""
             
-            for chunk in client.beta.threads.runs.stream(
-                thread_id=st.session_state.thread_id[selected_monk],
-                run_id=run.id
-            ):
-                if chunk.event == "message_delta":
-                    if chunk.data.delta.content:
-                        full_response += chunk.data.delta.content
-                        message_placeholder.markdown(remove_citation_markers(full_response) + "▌")
-                elif chunk.event == "run_completed":
-                    message_placeholder.markdown(remove_citation_markers(full_response))
+            while run.status not in ["completed", "failed"]:
+                run = client.beta.threads.runs.retrieve(
+                    thread_id=st.session_state.thread_id[selected_monk],
+                    run_id=run.id
+                )
+                if run.status == "completed":
+                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
+                    new_message = messages.data[0].content[0].text.value
+                    new_message = remove_citation_markers(new_message)
+                    
+                    # Stream response
+                    lines = new_message.split('\n')
+                    for line in lines:
+                        full_response += line + '\n'
+                        time.sleep(0.05)
+                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
+                    
+                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
                     break
+                elif run.status == "failed":
+                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
+                    logger.error(f"Run failed: {run.last_error}")
+                    break
+                else:
+                    time.sleep(0.5)
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
