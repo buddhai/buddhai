@@ -12,7 +12,6 @@ api_key = st.secrets["openai"]["api_key"]
 assistant_id = st.secrets["assistant"]["id"]
 vector_store_id = st.secrets["vector_store"]["id"]
 
-
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
 
@@ -54,10 +53,16 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
             content=prompt
         )
 
-        # run 생성
+        # Vector store에서 파일 ID 가져오기
+        files = client.files.list()
+        file_ids = [file.id for file in files.data if file.purpose == "assistants"]
+
+        # run 생성 (file_ids 포함)
         run = client.beta.threads.runs.create(
             thread_id=st.session_state.thread_id,
             assistant_id=assistant_id,
+            tools=[{"type": "retrieval"}],  # retrieval 도구 추가
+            file_ids=file_ids  # 파일 ID 목록 전달
         )
 
         # 응답 대기 및 표시 (streaming)
