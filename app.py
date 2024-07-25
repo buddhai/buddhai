@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import logging
+import time
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -113,16 +114,15 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                         thread_id=st.session_state.thread_id[selected_monk]
                     )
                     new_message = messages.data[0].content[0].text.value
-                    full_response += new_message
+                    full_response = new_message
                     message_placeholder.markdown(full_response)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
                     break
                 elif run.status in ["queued", "in_progress"]:
-                    current_content = full_response + "▌"
-                    message_placeholder.markdown(current_content)
-                    st.empty()  # Trigger a rerun
+                    message_placeholder.markdown(full_response + "▌")
+                    time.sleep(0.1)  # 짧은 대기 시간 추가
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
