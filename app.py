@@ -1,5 +1,10 @@
 import streamlit as st
 from openai import OpenAI
+import logging
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Streamlit secrets에서 설정한 시크릿 값을 사용
 api_key = st.secrets["openai"]["api_key"]
@@ -79,7 +84,6 @@ if prompt := st.chat_input("진우스님AI에게 질문하세요"):
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
         st.error(f"An error occurred: {str(e)}")
-
 
 # 채팅 초기화 버튼
 if st.button("대화 초기화"):
