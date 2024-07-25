@@ -65,6 +65,9 @@ st.markdown("""
         justify-content: center;
         padding: 10px;
     }
+    .chat-content {
+        white-space: pre-wrap;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -96,7 +99,7 @@ if st.session_state.thread_id[selected_monk] is None:
 # 채팅 메시지 표시
 for message in st.session_state.messages[selected_monk]:
     with st.chat_message(message["role"], avatar=monks.get(selected_monk) if message["role"] == "assistant" else "👤"):
-        st.markdown(message["content"])
+        st.markdown(f'<div class="chat-content">{message["content"]}</div>', unsafe_allow_html=True)
 
 # 사용자 입력 처리
 if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
@@ -146,19 +149,22 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     
                     new_message = messages.data[-1].content[0].text.value
                     
-                    # 실시간 스트리밍 시뮬레이션
-                    for chunk in new_message.split():
-                        full_response += chunk + " "
-                        # 줄바꿈 유지를 위해 두 개의 공백으로 줄 끝을 처리
-                        formatted_response = full_response.replace("\n", "  \n")
-                        message_placeholder.markdown(formatted_response + "▌")
+                    # Stream response with proper line breaks and paragraphs
+                    lines = new_message.split('\n')
+                    for i, line in enumerate(lines):
+                        if line.strip() == "":
+                            # Empty line indicates a new paragraph
+                            full_response += '\n\n'
+                        else:
+                            full_response += line + '\n'
+                        message_placeholder.markdown(f'<div class="chat-content">{full_response}▌</div>', unsafe_allow_html=True)
                         time.sleep(0.05)
                     
                     # 마지막 메시지 ID 저장
                     st.session_state.messages[selected_monk][-1]["message_id"] = messages.data[-1].id
                     
-                    # 최종 메시지 표시 (줄바꿈 유지)
-                    message_placeholder.markdown(formatted_response)
+                    # 최종 메시지 표시
+                    message_placeholder.markdown(f'<div class="chat-content">{full_response}</div>', unsafe_allow_html=True)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
@@ -167,7 +173,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                 else:
                     time.sleep(0.5)
 
-        st.session_state.messages[selected_monk].append({"role": "assistant", "content": formatted_response})
+        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
