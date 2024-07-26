@@ -159,15 +159,6 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
-            
-            # "답변을 생각하는 중......" 메시지와 로딩 애니메이션 표시
-            message_placeholder.markdown("""
-            <div style="display: flex; align-items: center;">
-                <div class="loading-spinner"></div>
-                답변을 생각하는 중......
-            </div>
-            """, unsafe_allow_html=True)
-            
             full_response = ""
             
             while run.status not in ["completed", "failed"]:
@@ -175,19 +166,24 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     thread_id=st.session_state.thread_id[selected_monk],
                     run_id=run.id
                 )
+                
                 if run.status == "completed":
-                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
-                    new_message = messages.data[0].content[0].text.value
-                    new_message = remove_citation_markers(new_message)
+                    messages = client.beta.threads.messages.list(
+                        thread_id=st.session_state.thread_id[selected_monk],
+                        order="asc",
+                        after=st.session_state.messages[selected_monk][-1]["id"] if st.session_state.messages[selected_monk] else None
+                    )
                     
-                    # Stream response
-                    lines = new_message.split('\n')
-                    for line in lines:
-                        full_response += line + '\n'
-                        time.sleep(0.05)
-                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
+                    for msg in messages.data:
+                        if msg.role == "assistant":
+                            new_content = remove_citation_markers(msg.content[0].text.value)
+                            words = new_content.split()
+                            for word in words:
+                                full_response += word + " "
+                                time.sleep(0.05)
+                                message_placeholder.markdown(full_response + "▌")
                     
-                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
+                    message_placeholder.markdown(full_response)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
@@ -196,11 +192,12 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                 else:
                     time.sleep(0.5)
 
-        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response, "id": messages.data[-1].id})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
         st.error(f"오류가 발생했습니다: {str(e)}")
+
 
 # 채팅 초기화 버튼
 if st.sidebar.button("대화 초기화"):
