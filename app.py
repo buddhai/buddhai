@@ -36,61 +36,85 @@ st.markdown("""
         max-width: 100%;
         padding: 1rem;
         box-sizing: border-box;
+        background-color: #f5f5f5;
     }
 
     /* 메인 컨테이너 스타일 */
     .main-container {
         max-width: 800px;
         margin: 0 auto;
-        padding: 10px;
+        padding: 20px;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     /* 채팅 메시지 스타일 */
     .stChatMessage {
         border-radius: 20px;
-        padding: 10px 15px;
-        margin: 5px 0;
+        padding: 12px 18px;
+        margin: 8px 0;
         max-width: 80%;
         clear: both;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     .stChatMessage.user {
         background-color: #e6f3ff;
         float: right;
+        border-bottom-right-radius: 0;
     }
     .stChatMessage.assistant {
         background-color: #f0f7e6;
         float: left;
+        border-bottom-left-radius: 0;
     }
 
     /* 입력 필드 스타일 */
     .stTextInput {
         position: fixed;
-        bottom: 10px;
-        left: 10px;
-        right: 10px;
-        padding: 10px;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 40px);
+        max-width: 800px;
+        padding: 15px;
         background-color: white;
-        border-radius: 20px;
+        border-radius: 30px;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
     }
 
     /* 스크롤바 스타일 */
     ::-webkit-scrollbar {
-        width: 5px;
+        width: 8px;
     }
     ::-webkit-scrollbar-thumb {
         background: #888;
-        border-radius: 5px;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 
     /* 반응형 디자인 */
     @media (max-width: 768px) {
         .main-container {
-            padding: 5px;
+            padding: 10px;
         }
         .stChatMessage {
             max-width: 90%;
         }
+    }
+
+    /* 로딩 애니메이션 */
+    @keyframes pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+    }
+    .loading-dots::after {
+        content: '...';
+        animation: pulse 1.5s infinite;
+        display: inline-block;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -160,11 +184,10 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
             
-            # "답변을 생각하는 중......" 메시지와 로딩 애니메이션 표시
+            # "답변을 생성 중" 메시지와 로딩 애니메이션 표시
             message_placeholder.markdown("""
             <div style="display: flex; align-items: center;">
-                <div class="loading-spinner"></div>
-                답변을 생각하는 중......
+                <span>답변을 생성 중</span><span class="loading-dots"></span>
             </div>
             """, unsafe_allow_html=True)
             
@@ -181,13 +204,12 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     new_message = remove_citation_markers(new_message)
                     
                     # Stream response
-                    lines = new_message.split('\n')
-                    for line in lines:
-                        full_response += line + '\n'
-                        time.sleep(0.05)
-                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
+                    for char in new_message:
+                        full_response += char
+                        time.sleep(0.02)
+                        message_placeholder.markdown(full_response + "▌")
                     
-                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
+                    message_placeholder.markdown(full_response)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
