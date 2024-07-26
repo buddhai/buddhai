@@ -106,6 +106,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = {monk: [] for monk in monks}
 if "thread_id" not in st.session_state:
     st.session_state.thread_id = {monk: None for monk in monks}
+if "last_message_id" not in st.session_state:
+    st.session_state.last_message_id = {monk: None for monk in monks}
 
 # Thread 생성 함수
 def create_thread():
