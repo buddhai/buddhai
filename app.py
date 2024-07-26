@@ -140,6 +140,10 @@ def create_thread():
         logger.error(f"Thread creation failed: {str(e)}")
         return None
 
+# 인용 마커 제거 함수
+def remove_citation_markers(text):
+    return re.sub(r'【\d+:\d+†source】', '', text)
+
 # Thread 초기화
 if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
@@ -179,36 +183,31 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
-            full_response = ""
-
+            
             # "답변을 생성 중" 메시지와 로딩 애니메이션 표시
             message_placeholder.markdown("""
             <div style="display: flex; align-items: center;">
                 <span>답변을 생성 중</span><span class="loading-dots"></span>
             </div>
             """, unsafe_allow_html=True)
-
+            
+            full_response = ""
+            
             while run.status not in ["completed", "failed"]:
                 run = client.beta.threads.runs.retrieve(
                     thread_id=st.session_state.thread_id[selected_monk],
                     run_id=run.id
                 )
-                
                 if run.status == "completed":
-                    # 스트림으로 메시지 받기
-                    stream = client.beta.threads.messages.list(
-                        thread_id=st.session_state.thread_id[selected_monk],
-                        order="asc",
-                        after=st.session_state.messages[selected_monk][-1].get("message_id")
-                    )
+                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
+                    new_message = messages.data[0].content[0].text.value
+                    new_message = remove_citation_markers(new_message)
                     
-                    for message in stream:
-                        if message.role == "assistant":
-                            for content in message.content:
-                                if content.type == 'text':
-                                    full_response += content.text.value
-                                    message_placeholder.markdown(full_response + "▌")
-                                    time.sleep(0.01)  # 더 자연스러운 타이핑 효과를 위해 짧은 지연 추가
+                    # Stream response
+                    for char in new_message:
+                        full_response += char
+                        time.sleep(0.02)
+                        message_placeholder.markdown(full_response + "▌")
                     
                     message_placeholder.markdown(full_response)
                     break
@@ -219,12 +218,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                 else:
                     time.sleep(0.5)
 
-        # 메시지 ID 저장 (다음 스트리밍을 위해)
-        st.session_state.messages[selected_monk].append({
-            "role": "assistant",
-            "content": full_response,
-            "message_id": message.id
-        })
+        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
