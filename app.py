@@ -18,7 +18,7 @@ client = OpenAI(api_key=api_key)
 
 # 스님 목록과 아이콘
 monks = {
-    "진우스님": "🧘",
+    "선명상 도우미": "🧘",
     "꽃스님": "🌸",
     "혜민스님": "☯️",
     "법정스님": "📿",
@@ -123,7 +123,7 @@ st.markdown("""
 selected_monk = st.sidebar.radio("대화할 스님을 선택하세요", list(monks.keys()))
 
 # 메인 영역 설정
-st.title(f"{selected_monk}과의 대화")
+st.title(f"{selected_monk}")
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
