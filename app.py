@@ -169,37 +169,52 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                 )
                 
                 if run.status == "completed":
+                    # 완료된 경우 마지막 메시지만 가져옴
+                    messages = client.beta.threads.messages.list(
+                        thread_id=st.session_state.thread_id[selected_monk],
+                        order="desc",
+                        limit=1
+                    )
+                    if messages.data:
+                        new_message = messages.data[0]
+                        if new_message.role == "assistant":
+                            full_response = remove_citation_markers(new_message.content[0].text.value)
+                            message_placeholder.markdown(full_response)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
                     logger.error(f"Run failed: {run.last_error}")
-                    return
-                elif run.status != "in_progress":
+                    break
+                elif run.status == "in_progress":
+                    # 진행 중인 경우 스트리밍
+                    steps = client.beta.threads.runs.steps.list(
+                        thread_id=st.session_state.thread_id[selected_monk],
+                        run_id=run.id,
+                        order="asc"
+                    )
+                    
+                    for step in steps.data:
+                        if step.type == "message_creation":
+                            message_id = step.step_details.message_creation.message_id
+                            message = client.beta.threads.messages.retrieve(
+                                thread_id=st.session_state.thread_id[selected_monk],
+                                message_id=message_id
+                            )
+                            
+                            new_content = remove_citation_markers(message.content[0].text.value)
+                            if new_content.strip() and new_content.strip() not in full_response:
+                                full_response += new_content
+                                message_placeholder.markdown(full_response + "▌")
+                    
                     time.sleep(0.5)
-                    continue
-                
-                # 스트림 이벤트 처리
-                steps = client.beta.threads.runs.steps.list(
-                    thread_id=st.session_state.thread_id[selected_monk],
-                    run_id=run.id,
-                    order="asc"
-                )
-                
-                for step in steps.data:
-                    if step.type == "message_creation":
-                        message_id = step.step_details.message_creation.message_id
-                        message = client.beta.threads.messages.retrieve(
-                            thread_id=st.session_state.thread_id[selected_monk],
-                            message_id=message_id
-                        )
-                        
-                        new_content = remove_citation_markers(message.content[0].text.value)
-                        if new_content.strip() and new_content.strip() not in full_response:
-                            full_response += new_content
-                            message_placeholder.markdown(full_response + "▌")
-                
-                time.sleep(0.5)
-            
+                else:
+                    time.sleep(0.5)
+
+        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+
+    except Exception as e:
+        logger.error(f"Error occurred: {str(e)}")
+        st.error(f"오류가 발생했습니다: {str(e)}")
             message_placeholder.markdown(full_response)
             st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
