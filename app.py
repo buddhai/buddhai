@@ -125,16 +125,20 @@ if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
 
 # 채팅 메시지 표시
-for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
-        st.markdown(message["content"])
-
+message_container = st.container()
+with message_container:
+    for message in st.session_state.messages[selected_monk]:
+        with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
+            st.markdown(message["content"])
 
 # 사용자 입력 처리
 if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
-    st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="👤"):
-        st.markdown(prompt)
+    user_message = {"role": "user", "content": prompt}
+    st.session_state.messages[selected_monk].append(user_message)
+    
+    with message_container:
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(prompt)
 
     try:
         # Assistant에 메시지 전송
@@ -152,63 +156,43 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         )
 
         # 응답 대기 및 표시
-        with st.chat_message("assistant", avatar=monks[selected_monk]):
-            message_placeholder = st.empty()
-            full_response = ""
-            
-            while True:
-                run = client.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id[selected_monk],
-                    run_id=run.id
-                )
+        with message_container:
+            with st.chat_message("assistant", avatar=monks[selected_monk]):
+                message_placeholder = st.empty()
+                full_response = ""
                 
-                if run.status == "completed":
-                    # 완료된 경우 최종 메시지만 가져옴
-                    messages = client.beta.threads.messages.list(
+                while run.status != "completed":
+                    run = client.beta.threads.runs.retrieve(
                         thread_id=st.session_state.thread_id[selected_monk],
-                        order="desc",
-                        limit=1
-                    )
-                    if messages.data:
-                        new_message = messages.data[0]
-                        if new_message.role == "assistant":
-                            full_response = remove_citation_markers(new_message.content[0].text.value)
-                            message_placeholder.markdown(full_response)
-                            logger.info(f"Final response: {full_response}")
-                    break
-                elif run.status == "failed":
-                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
-                    logger.error(f"Run failed: {run.last_error}")
-                    break
-                elif run.status == "in_progress":
-                    # 진행 중인 경우 스트리밍
-                    steps = client.beta.threads.runs.steps.list(
-                        thread_id=st.session_state.thread_id[selected_monk],
-                        run_id=run.id,
-                        order="asc"
+                        run_id=run.id
                     )
                     
-                    new_content = ""
-                    for step in steps.data:
-                        if step.type == "message_creation":
-                            message_id = step.step_details.message_creation.message_id
-                            message = client.beta.threads.messages.retrieve(
-                                thread_id=st.session_state.thread_id[selected_monk],
-                                message_id=message_id
-                            )
-                            
-                            step_content = remove_citation_markers(message.content[0].text.value)
-                            if step_content.strip() and step_content.strip() not in full_response:
-                                new_content += step_content
+                    if run.status == "failed":
+                        st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
+                        logger.error(f"Run failed: {run.last_error}")
+                        break
                     
-                    if new_content:
-                        full_response += new_content
-                        message_placeholder.markdown(full_response + "▌")
-                        logger.info(f"Streaming update: {new_content}")
+                    if run.status == "in_progress":
+                        messages = client.beta.threads.messages.list(
+                            thread_id=st.session_state.thread_id[selected_monk],
+                            order="desc",
+                            limit=1
+                        )
+                        
+                        if messages.data:
+                            new_message = messages.data[0]
+                            if new_message.id != st.session_state.last_message_id[selected_monk]:
+                                new_content = remove_citation_markers(new_message.content[0].text.value)
+                                if new_content.strip() and new_content.strip() not in full_response:
+                                    full_response += new_content
+                                    message_placeholder.markdown(full_response + "▌")
+                                    st.session_state.last_message_id[selected_monk] = new_message.id
+                    
+                    time.sleep(0.5)
                 
-                time.sleep(0.5)
-
-        # 최종 응답만 저장
+                message_placeholder.markdown(full_response)
+                
+        # 최종 응답 저장
         if full_response:
             st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
             logger.info(f"Added to session state: {full_response}")
@@ -221,6 +205,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
 if st.sidebar.button("대화 초기화"):
     st.session_state.messages[selected_monk] = []
     st.session_state.thread_id[selected_monk] = create_thread()
+    st.session_state.last_message_id[selected_monk] = None
     logger.info(f"Chat reset for {selected_monk}")
     st.experimental_rerun()
 
