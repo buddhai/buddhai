@@ -171,7 +171,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     messages = client.beta.threads.messages.list(
                         thread_id=st.session_state.thread_id[selected_monk],
                         order="asc",
-                        after=st.session_state.messages[selected_monk][-1]["id"] if st.session_state.messages[selected_monk] else None
+                        after=st.session_state.messages[selected_monk][-1].get("id") if st.session_state.messages[selected_monk] else None
                     )
                     
                     for msg in messages.data:
@@ -192,7 +192,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                 else:
                     time.sleep(0.5)
 
-        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response, "id": messages.data[-1].id})
+        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response, "id": messages.data[-1].id if messages.data else None})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
