@@ -179,8 +179,23 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
                     logger.error(f"Run failed: {run.last_error}")
                     break
-                else:
-                    time.sleep(0.5)
+                elif run.status == "in_progress":
+                    # 스트리밍 구현
+                    messages = client.beta.threads.messages.list(
+                        thread_id=st.session_state.thread_id[selected_monk],
+                        order="desc",
+                        limit=1
+                    )
+                    if messages.data:
+                        new_message = messages.data[0]
+                        if new_message.role == "assistant":
+                            for content in new_message.content:
+                                if content.type == 'text':
+                                    new_content = remove_citation_markers(content.text.value)
+                                    if new_content not in full_response:
+                                        full_response += new_content
+                                        message_placeholder.markdown(full_response + "▌")
+                time.sleep(0.5)
 
         # 최종 응답 저장
         if full_response:
@@ -200,3 +215,4 @@ if st.sidebar.button("대화 초기화"):
 
 # 디버깅을 위한 세션 상태 출력
 logger.info(f"Current session state: {st.session_state.messages}")
+
