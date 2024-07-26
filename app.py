@@ -123,7 +123,7 @@ st.markdown("""
 selected_monk = st.sidebar.radio("대화할 스님을 선택하세요", list(monks.keys()))
 
 # 메인 영역 설정
-st.title(f"{selected_monk}")
+st.title(f"{selected_monk}와의 대화")
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
