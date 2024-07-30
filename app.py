@@ -26,22 +26,19 @@ monks = {
 }
 
 # Streamlit 페이지 설정
-st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
+st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="centered")
 
 # 커스텀 CSS 추가
 st.markdown("""
 <style>
     /* 전체 페이지 스타일 */
     .stApp {
-        max-width: 100%;
-        padding: 1rem;
-        box-sizing: border-box;
         background-color: #f5f5f5;
     }
 
     /* 메인 컨테이너 스타일 */
     .main-container {
-        max-width: 800px;
+        width: 375px; /* 모바일 기기 너비에 맞춤 */
         margin: 0 auto;
         padding: 20px;
         background-color: white;
@@ -76,7 +73,7 @@ st.markdown("""
         left: 50%;
         transform: translateX(-50%);
         width: calc(100% - 40px);
-        max-width: 800px;
+        max-width: 375px;
         padding: 15px;
         background-color: white;
         border-radius: 30px;
@@ -119,8 +116,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 사이드바에 스님 선택 옵션을 라디오 버튼으로 추가
-selected_monk = st.sidebar.radio("대화할 스님을 선택하세요", list(monks.keys()))
+# 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
+selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
 
 # 메인 영역 설정
 st.title(f"{selected_monk}와의 대화")
@@ -148,84 +145,91 @@ def remove_citation_markers(text):
 if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
 
-# 채팅 메시지 표시
-for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
-        st.markdown(message["content"])
+# 메인 컨테이너 시작
+with st.container():
+    # 중앙에 모바일 창 스타일의 컨테이너 추가
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-# 사용자 입력 처리
-if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
-    st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="👤"):
-        st.markdown(prompt)
+    # 채팅 메시지 표시
+    for message in st.session_state.messages[selected_monk]:
+        with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
+            st.markdown(message["content"])
 
-    try:
-        # Assistant에 메시지 전송
-        client.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id[selected_monk],
-            role="user",
-            content=f"사용자가 {selected_monk}와 대화하고 있습니다: {prompt}"
-        )
+    # 사용자 입력 처리
+    if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
+        st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(prompt)
 
-        # run 생성
-        run_params = {
-            "thread_id": st.session_state.thread_id[selected_monk],
-            "assistant_id": assistant_id,
-        }
+        try:
+            # Assistant에 메시지 전송
+            client.beta.threads.messages.create(
+                thread_id=st.session_state.thread_id[selected_monk],
+                role="user",
+                content=f"사용자가 {selected_monk}와 대화하고 있습니다: {prompt}"
+            )
 
-        # Vector store ID가 있으면 file_search 도구 추가
-        if vector_store_id:
-            run_params["tools"] = [{"type": "file_search"}]
+            # run 생성
+            run_params = {
+                "thread_id": st.session_state.thread_id[selected_monk],
+                "assistant_id": assistant_id,
+            }
 
-        logger.info(f"Creating run with params: {run_params}")
-        run = client.beta.threads.runs.create(**run_params)
+            # Vector store ID가 있으면 file_search 도구 추가
+            if vector_store_id:
+                run_params["tools"] = [{"type": "file_search"}]
 
-        # 응답 대기 및 표시
-        with st.chat_message("assistant", avatar=monks[selected_monk]):
-            message_placeholder = st.empty()
-            
-            # "답변을 생성 중" 메시지와 로딩 애니메이션 표시
-            message_placeholder.markdown("""
-            <div style="display: flex; align-items: center;">
-                <span>답변을 생성 중</span><span class="loading-dots"></span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            full_response = ""
-            
-            while run.status not in ["completed", "failed"]:
-                run = client.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id[selected_monk],
-                    run_id=run.id
-                )
-                if run.status == "completed":
-                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
-                    new_message = messages.data[0].content[0].text.value
-                    new_message = remove_citation_markers(new_message)
-                    
-                    # Stream response
-                    for char in new_message:
-                        full_response += char
-                        time.sleep(0.02)
-                        message_placeholder.markdown(full_response + "▌")
-                    
-                    message_placeholder.markdown(full_response)
-                    break
-                elif run.status == "failed":
-                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
-                    logger.error(f"Run failed: {run.last_error}")
-                    break
-                else:
-                    time.sleep(0.5)
+            logger.info(f"Creating run with params: {run_params}")
+            run = client.beta.threads.runs.create(**run_params)
 
-        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+            # 응답 대기 및 표시
+            with st.chat_message("assistant", avatar=monks[selected_monk]):
+                message_placeholder = st.empty()
+                
+                # "답변을 생성 중" 메시지와 로딩 애니메이션 표시
+                message_placeholder.markdown("""
+                <div style="display: flex; align-items: center;">
+                    <span>답변을 생성 중</span><span class="loading-dots"></span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                full_response = ""
+                
+                while run.status not in ["completed", "failed"]:
+                    run = client.beta.threads.runs.retrieve(
+                        thread_id=st.session_state.thread_id[selected_monk],
+                        run_id=run.id
+                    )
+                    if run.status == "completed":
+                        messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
+                        new_message = messages.data[0].content[0].text.value
+                        new_message = remove_citation_markers(new_message)
+                        
+                        # Stream response
+                        for char in new_message:
+                            full_response += char
+                            time.sleep(0.02)
+                            message_placeholder.markdown(full_response + "▌")
+                        
+                        message_placeholder.markdown(full_response)
+                        break
+                    elif run.status == "failed":
+                        st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
+                        logger.error(f"Run failed: {run.last_error}")
+                        break
+                    else:
+                        time.sleep(0.5)
 
-    except Exception as e:
-        logger.error(f"Error occurred: {str(e)}")
-        st.error(f"오류가 발생했습니다: {str(e)}")
+            st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
-# 채팅 초기화 버튼
-if st.sidebar.button("대화 초기화"):
-    st.session_state.messages[selected_monk] = []
-    st.session_state.thread_id[selected_monk] = create_thread()
-    st.experimental_rerun()
+        except Exception as e:
+            logger.error(f"Error occurred: {str(e)}")
+            st.error(f"오류가 발생했습니다: {str(e)}")
+
+    # 채팅 초기화 버튼
+    if st.sidebar.button("대화 초기화"):
+        st.session_state.messages[selected_monk] = []
+        st.session_state.thread_id[selected_monk] = create_thread()
+        st.experimental_rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)  # 메인 컨테이너 닫기
