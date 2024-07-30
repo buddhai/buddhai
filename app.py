@@ -5,7 +5,7 @@ import time
 import re
 
 # Configure logging
-logging.basic(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Get secrets from Streamlit's secrets management
@@ -33,38 +33,66 @@ tailwind_css = """
 <link href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <style>
     .stApp {
-        @apply w-full p-4 box-border bg-gray-100;
+        width: 100%;
+        padding: 1rem;
+        box-sizing: border-box;
+        background-color: #f5f5f5;
     }
     .main-container {
-        @apply w-full max-w-3xl mx-auto p-8 bg-white rounded-lg shadow-lg;
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .stChatMessage {
-        @apply rounded-lg py-3 px-4 my-2 max-w-4/5 clear-both shadow;
+        border-radius: 20px;
+        padding: 12px 18px;
+        margin: 8px 0;
+        max-width: 80%;
+        clear: both;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     .stChatMessage.user {
-        @apply bg-blue-100 float-right rounded-br-none;
+        background-color: #e6f3ff;
+        float: right;
+        border-bottom-right-radius: 0;
     }
     .stChatMessage.assistant {
-        @apply bg-green-100 float-left rounded-bl-none;
+        background-color: #f0f7e6;
+        float: left;
+        border-bottom-left-radius: 0;
     }
     .stTextInput {
-        @apply fixed bottom-5 left-1/2 transform -translate-x-1/2 w-[calc(100%-40px)] max-w-3xl p-4 bg-white rounded-full shadow-md;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 40px);
+        max-width: 800px;
+        padding: 15px;
+        background-color: white;
+        border-radius: 30px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
     }
     ::-webkit-scrollbar {
-        @apply w-2;
+        width: 8px;
     }
     ::-webkit-scrollbar-thumb {
-        @apply bg-gray-500 rounded;
+        background: #888;
+        border-radius: 10px;
     }
     ::-webkit-scrollbar-thumb:hover {
-        @apply bg-gray-700;
+        background: #555;
     }
     @media (max-width: 768px) {
         .main-container {
-            @apply p-4;
+            padding: 10px;
         }
         .stChatMessage {
-            @apply max-w-11/12;
+            max-width: 90%;
         }
     }
     @keyframes pulse {
@@ -74,7 +102,8 @@ tailwind_css = """
     }
     .loading-dots::after {
         content: '...';
-        @apply inline-block animate-pulse;
+        animation: pulse 1.5s infinite;
+        display: inline-block;
     }
 </style>
 """
@@ -147,7 +176,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
 
             # Display "Generating response" message with loading animation
             message_placeholder.markdown("""
-            <div class="flex items-center">
+            <div style="display: flex; align-items: center;">
                 <span>답변을 생성 중</span><span class="loading-dots"></span>
             </div>
             """, unsafe_allow_html=True)
