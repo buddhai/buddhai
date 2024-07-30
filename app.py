@@ -35,40 +35,41 @@ kakao_css = """
     
     body {
         font-family: 'Noto Sans KR', sans-serif;
-        background-color: #9bbbd4;
+        background-color: #b2c7d9;
         color: #000000;
+        font-size: 16px;
     }
     .stApp {
         max-width: 100%;
         padding: 0;
     }
     .main-container {
-        max-width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
         padding: 0;
-        background-color: #9bbbd4;
+        background-color: #b2c7d9;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
     }
     .chat-header {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
         background-color: #a1c0d5;
         color: #000000;
         padding: 10px 20px;
         font-weight: bold;
         font-size: 18px;
-        z-index: 1000;
+        text-align: center;
         box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
     .chat-container {
-        padding: 70px 10px 70px 10px;
+        flex-grow: 1;
         overflow-y: auto;
-        height: calc(100vh - 140px);
+        padding: 20px 10px;
     }
     .stChatMessage {
         background-color: transparent !important;
         border-radius: 0 !important;
-        padding: 10px 0 !important;
+        padding: 5px 0 !important;
         margin: 5px 0 !important;
         max-width: 100% !important;
         width: auto !important;
@@ -85,8 +86,9 @@ kakao_css = """
         max-width: 70%;
         padding: 8px 12px;
         border-radius: 15px;
-        font-size: 14px;
+        font-size: 16px;
         line-height: 1.4;
+        word-wrap: break-word;
     }
     .user .message-bubble {
         background-color: #fef01b;
@@ -97,12 +99,8 @@ kakao_css = """
         border-top-left-radius: 0;
     }
     .stTextInput {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 10px;
         background-color: #eaeaea;
+        padding: 10px;
     }
     .stTextInput > div {
         background-color: #ffffff;
@@ -113,6 +111,7 @@ kakao_css = """
         background-color: transparent;
         border: none;
         padding: 10px 0;
+        font-size: 16px;
     }
     button {
         border-radius: 50%;
@@ -137,12 +136,21 @@ kakao_css = """
         50% { opacity: 1; }
         100% { opacity: 0.5; }
     }
+    .stMarkdown {
+        padding: 0;
+    }
+    .stMarkdown > div {
+        margin-bottom: 0;
+    }
 </style>
 """
 st.markdown(kakao_css, unsafe_allow_html=True)
 
-# Sidebar for monk selection (hidden on mobile)
+# Monk selection
 selected_monk = st.sidebar.radio("대화할 스님을 선택하세요", list(monks.keys()))
+
+# Main container
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
 # Chat header
 st.markdown(f'<div class="chat-header">{selected_monk}와의 대화</div>', unsafe_allow_html=True)
@@ -253,3 +261,5 @@ if st.sidebar.button("대화 초기화"):
     st.session_state.messages[selected_monk] = []
     st.session_state.thread_id[selected_monk] = create_thread()
     st.experimental_rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
