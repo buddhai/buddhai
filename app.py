@@ -34,6 +34,10 @@ st.markdown("""
     /* 전체 페이지 스타일 */
     .stApp {
         background-color: #f5f5f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
     }
 
     /* 메인 컨테이너 스타일 */
@@ -44,6 +48,10 @@ st.markdown("""
         background-color: white;
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        max-height: 800px;
     }
 
     /* 채팅 메시지 스타일 */
@@ -64,6 +72,13 @@ st.markdown("""
         background-color: #f0f7e6;
         float: left;
         border-bottom-left-radius: 0;
+    }
+
+    /* 채팅 영역 스타일 */
+    .chat-area {
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 60px;
     }
 
     /* 입력 필드 스타일 */
@@ -150,10 +165,15 @@ with st.container():
     # 중앙에 모바일 창 스타일의 컨테이너 추가
     st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
+    # 채팅 영역
+    st.markdown('<div class="chat-area">', unsafe_allow_html=True)
+    
     # 채팅 메시지 표시
     for message in st.session_state.messages[selected_monk]:
         with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
             st.markdown(message["content"])
+
+    st.markdown('</div>', unsafe_allow_html=True)  # 채팅 영역 닫기
 
     # 사용자 입력 처리
     if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
