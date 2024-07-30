@@ -34,11 +34,8 @@ st.markdown("""
     /* 전체 페이지 스타일 */
     .stApp {
         background-color: #f5f5f5;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding-top: 20px;
     }
+
 
     /* 메인 컨테이너 스타일 */
     .main-container {
@@ -53,6 +50,7 @@ st.markdown("""
         height: calc(100vh - 40px);
         max-height: 800px;
     }
+
 
     /* 채팅 메시지 스타일 */
     .stChatMessage {
@@ -76,21 +74,28 @@ st.markdown("""
 
     /* 채팅 영역 스타일 */
     .chat-area {
-        flex: 1;
+        height: calc(100vh - 200px);
         overflow-y: auto;
-        padding-bottom: 20px;
+        padding: 20px;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
-
+            
     /* 입력 필드 스타일 */
     .stTextInput {
-        position: sticky;
+        position: fixed;
         bottom: 20px;
-        width: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 40px);
+        max-width: 800px;
         padding: 15px;
         background-color: white;
         border-radius: 30px;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
     }
+
 
     /* 스크롤바 스타일 */
     ::-webkit-scrollbar {
@@ -143,6 +148,7 @@ st.markdown("""
         border-radius: 5px;
         cursor: pointer;
     }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -150,7 +156,7 @@ st.markdown("""
 selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
 
 # 메인 영역 설정
-st.markdown('<div class="main-container">', unsafe_allow_html=True)
+st.title(f"{selected_monk}와의 대화")
 
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
 st.markdown('<div class="title-container">', unsafe_allow_html=True)
