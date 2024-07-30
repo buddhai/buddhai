@@ -26,40 +26,28 @@ monks = {
 }
 
 # Streamlit 페이지 설정
-st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="centered")
+st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
 
 # 커스텀 CSS 추가
 st.markdown("""
 <style>
-    /* 전체 페이지 스타일 */
     .stApp {
         background-color: #f5f5f5;
     }
-
-
-    /* 메인 컨테이너 스타일 */
-    .main-container {
-        width: 375px;
+    .chat-container {
+        max-width: 800px;
         margin: 0 auto;
         padding: 20px;
         background-color: white;
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 40px);
-        max-height: 800px;
     }
-
-
-    /* 채팅 메시지 스타일 */
     .stChatMessage {
-        border-radius: 20px;
         padding: 12px 18px;
         margin: 8px 0;
+        border-radius: 20px;
         max-width: 80%;
         clear: both;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     .stChatMessage.user {
         background-color: #e6f3ff;
@@ -71,104 +59,42 @@ st.markdown("""
         float: left;
         border-bottom-left-radius: 0;
     }
-
-    /* 채팅 영역 스타일 */
-    .chat-area {
-        height: calc(100vh - 200px);
-        overflow-y: auto;
-        padding: 20px;
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-            
-    /* 입력 필드 스타일 */
-    .stTextInput {
+    .chat-input {
         position: fixed;
         bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         width: calc(100% - 40px);
-        max-width: 800px;
-        padding: 15px;
-        background-color: white;
-        border-radius: 30px;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        max-width: 760px;
     }
-
-
-    /* 스크롤바 스타일 */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-
-    /* 반응형 디자인 */
-    @media (max-width: 768px) {
-        .main-container {
-            padding: 10px;
-        }
-        .stChatMessage {
-            max-width: 90%;
-        }
-    }
-
-    /* 로딩 애니메이션 */
-    @keyframes pulse {
-        0% { opacity: 0.5; }
-        50% { opacity: 1; }
-        100% { opacity: 0.5; }
-    }
-    .loading-dots::after {
-        content: '...';
-        animation: pulse 1.5s infinite;
-        display: inline-block;
-    }
-
-    /* 제목과 초기화 버튼 컨테이너 */
     .title-container {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
     }
-
-    /* 초기화 버튼 스타일 */
-    .reset-button {
-        padding: 5px 10px;
+    .stButton>button {
         background-color: #f44336;
         color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
     }
-
 </style>
 """, unsafe_allow_html=True)
 
 # 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
 selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
 
-# 메인 영역 설정
-st.title(f"{selected_monk}와의 대화")
+# 채팅 컨테이너 시작
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
-st.markdown('<div class="title-container">', unsafe_allow_html=True)
-st.markdown(f"<h1>{selected_monk}와의 대화</h1>", unsafe_allow_html=True)
-
-# 대화 초기화 버튼
-if st.button("대화 초기화", key="reset_button"):
-    st.session_state.messages[selected_monk] = []
-    st.session_state.thread_id[selected_monk] = create_thread()
-    st.experimental_rerun()
-
-st.markdown('</div>', unsafe_allow_html=True)
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.title(f"{selected_monk}와의 대화")
+with col2:
+    if st.button("대화 초기화"):
+        st.session_state.messages[selected_monk] = []
+        st.session_state.thread_id[selected_monk] = None
+        st.experimental_rerun()
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -193,18 +119,17 @@ def remove_citation_markers(text):
 if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
 
-# 채팅 영역
-st.markdown('<div class="chat-area">', unsafe_allow_html=True)
-
 # 채팅 메시지 표시
 for message in st.session_state.messages[selected_monk]:
     with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
         st.markdown(message["content"])
 
-st.markdown('</div>', unsafe_allow_html=True)  # 채팅 영역 닫기
+# 채팅 컨테이너 닫기
+st.markdown('</div>', unsafe_allow_html=True)
 
 # 사용자 입력 처리
-if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
+prompt = st.chat_input(f"{selected_monk}에게 질문하세요", key="chat_input")
+if prompt:
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
@@ -233,13 +158,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
-            
-            # "답변을 생성 중" 메시지와 로딩 애니메이션 표시
-            message_placeholder.markdown("""
-            <div style="display: flex; align-items: center;">
-                <span>답변을 생성 중</span><span class="loading-dots"></span>
-            </div>
-            """, unsafe_allow_html=True)
+            message_placeholder.markdown("답변을 생성 중...")
             
             full_response = ""
             
@@ -274,4 +193,5 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         logger.error(f"Error occurred: {str(e)}")
         st.error(f"오류가 발생했습니다: {str(e)}")
 
-st.markdown('</div>', unsafe_allow_html=True)  # 메인 컨테이너 닫기
+# 스크롤을 최신 메시지로 이동
+st.markdown('<script>window.scrollTo(0, document.body.scrollHeight);</script>', unsafe_allow_html=True)
