@@ -5,7 +5,7 @@ import time
 import re
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basic(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Get secrets from Streamlit's secrets management
@@ -28,69 +28,43 @@ monks = {
 # Set up Streamlit page
 st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
 
-# Add custom CSS for styling
-st.markdown("""
+# Add Tailwind CSS
+tailwind_css = """
+<link href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <style>
     .stApp {
-        max-width: 100%;
-        padding: 1rem;
-        box-sizing: border-box;
-        background-color: #f5f5f5;
+        @apply w-full p-4 box-border bg-gray-100;
     }
     .main-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        @apply w-full max-w-3xl mx-auto p-8 bg-white rounded-lg shadow-lg;
     }
     .stChatMessage {
-        border-radius: 20px;
-        padding: 12px 18px;
-        margin: 8px 0;
-        max-width: 80%;
-        clear: both;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        @apply rounded-lg py-3 px-4 my-2 max-w-4/5 clear-both shadow;
     }
     .stChatMessage.user {
-        background-color: #e6f3ff;
-        float: right;
-        border-bottom-right-radius: 0;
+        @apply bg-blue-100 float-right rounded-br-none;
     }
     .stChatMessage.assistant {
-        background-color: #f0f7e6;
-        float: left;
-        border-bottom-left-radius: 0;
+        @apply bg-green-100 float-left rounded-bl-none;
     }
     .stTextInput {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 40px);
-        max-width: 800px;
-        padding: 15px;
-        background-color: white;
-        border-radius: 30px;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        @apply fixed bottom-5 left-1/2 transform -translate-x-1/2 w-[calc(100%-40px)] max-w-3xl p-4 bg-white rounded-full shadow-md;
     }
     ::-webkit-scrollbar {
-        width: 8px;
+        @apply w-2;
     }
     ::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 10px;
+        @apply bg-gray-500 rounded;
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #555;
+        @apply bg-gray-700;
     }
     @media (max-width: 768px) {
         .main-container {
-            padding: 10px;
+            @apply p-4;
         }
         .stChatMessage {
-            max-width: 90%;
+            @apply max-w-11/12;
         }
     }
     @keyframes pulse {
@@ -100,11 +74,11 @@ st.markdown("""
     }
     .loading-dots::after {
         content: '...';
-        animation: pulse 1.5s infinite;
-        display: inline-block;
+        @apply inline-block animate-pulse;
     }
 </style>
-""", unsafe_allow_html=True)
+"""
+st.markdown(tailwind_css, unsafe_allow_html=True)
 
 # Sidebar for monk selection
 selected_monk = st.sidebar.radio("대화할 스님을 선택하세요", list(monks.keys()))
@@ -173,7 +147,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
 
             # Display "Generating response" message with loading animation
             message_placeholder.markdown("""
-            <div style="display: flex; align-items: center;">
+            <div class="flex items-center">
                 <span>답변을 생성 중</span><span class="loading-dots"></span>
             </div>
             """, unsafe_allow_html=True)
