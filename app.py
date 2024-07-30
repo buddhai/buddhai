@@ -101,6 +101,8 @@ kakao_css = """
     .stTextInput {
         background-color: #eaeaea;
         padding: 10px;
+        position: sticky;
+        bottom: 0;
     }
     .stTextInput > div {
         background-color: #ffffff;
@@ -149,12 +151,6 @@ st.markdown(kakao_css, unsafe_allow_html=True)
 # Monk selection
 selected_monk = st.sidebar.radio("대화할 스님을 선택하세요", list(monks.keys()))
 
-# Main container
-st.markdown('<div class="main-container">', unsafe_allow_html=True)
-
-# Chat header
-st.markdown(f'<div class="chat-header">{selected_monk}와의 대화</div>', unsafe_allow_html=True)
-
 # Initialize session state for messages and thread IDs
 if "messages" not in st.session_state:
     st.session_state.messages = {monk: [] for monk in monks}
@@ -178,88 +174,99 @@ def remove_citation_markers(text):
 if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
 
-# Display chat messages
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else None):
-        st.markdown(f'<div class="message-bubble">{message["content"]}</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+# Main container
+with st.container():
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-# Handle user input
-if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
-    st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(f'<div class="message-bubble">{prompt}</div>', unsafe_allow_html=True)
+    # Chat header
+    st.markdown(f'<div class="chat-header">{selected_monk}와의 대화</div>', unsafe_allow_html=True)
 
-    try:
-        # Send message to assistant
-        client.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id[selected_monk],
-            role="user",
-            content=f"사용자가 {selected_monk}와 대화하고 있습니다: {prompt}"
-        )
+    # Chat container
+    with st.container():
+        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        
+        # Display chat messages
+        for message in st.session_state.messages[selected_monk]:
+            with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else None):
+                st.markdown(f'<div class="message-bubble">{message["content"]}</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # Create a run
-        run_params = {
-            "thread_id": st.session_state.thread_id[selected_monk],
-            "assistant_id": assistant_id,
-        }
+    # Handle user input
+    if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
+        st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(f'<div class="message-bubble">{prompt}</div>', unsafe_allow_html=True)
 
-        # Add file_search tool if vector_store_id is available
-        if vector_store_id:
-            run_params["tools"] = [{"type": "file_search"}]
+        try:
+            # Send message to assistant
+            client.beta.threads.messages.create(
+                thread_id=st.session_state.thread_id[selected_monk],
+                role="user",
+                content=f"사용자가 {selected_monk}와 대화하고 있습니다: {prompt}"
+            )
 
-        logger.info(f"Creating run with params: {run_params}")
-        run = client.beta.threads.runs.create(**run_params)
+            # Create a run
+            run_params = {
+                "thread_id": st.session_state.thread_id[selected_monk],
+                "assistant_id": assistant_id,
+            }
 
-        # Wait for the response and display
-        with st.chat_message("assistant", avatar=monks[selected_monk]):
-            message_placeholder = st.empty()
+            # Add file_search tool if vector_store_id is available
+            if vector_store_id:
+                run_params["tools"] = [{"type": "file_search"}]
 
-            # Display "Generating response" message with loading animation
-            message_placeholder.markdown("""
-            <div class="message-bubble" style="display: flex; align-items: center;">
-                <span>답변을 생성 중</span><span class="loading-dots"></span>
-            </div>
-            """, unsafe_allow_html=True)
+            logger.info(f"Creating run with params: {run_params}")
+            run = client.beta.threads.runs.create(**run_params)
 
-            full_response = ""
+            # Wait for the response and display
+            with st.chat_message("assistant", avatar=monks[selected_monk]):
+                message_placeholder = st.empty()
 
-            while run.status not in ["completed", "failed"]:
-                run = client.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id[selected_monk],
-                    run_id=run.id
-                )
-                if run.status == "completed":
-                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
-                    new_message = messages.data[0].content[0].text.value
-                    new_message = remove_citation_markers(new_message)
+                # Display "Generating response" message with loading animation
+                message_placeholder.markdown("""
+                <div class="message-bubble" style="display: flex; align-items: center;">
+                    <span>답변을 생성 중</span><span class="loading-dots"></span>
+                </div>
+                """, unsafe_allow_html=True)
 
-                    # Stream response
-                    for char in new_message:
-                        full_response += char
-                        time.sleep(0.02)
-                        message_placeholder.markdown(f'<div class="message-bubble">{full_response}▌</div>', unsafe_allow_html=True)
+                full_response = ""
 
-                    message_placeholder.markdown(f'<div class="message-bubble">{full_response}</div>', unsafe_allow_html=True)
-                    break
-                elif run.status == "failed":
-                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
-                    logger.error(f"Run failed: {run.last_error}")
-                    break
-                else:
-                    time.sleep(0.5)
+                while run.status not in ["completed", "failed"]:
+                    run = client.beta.threads.runs.retrieve(
+                        thread_id=st.session_state.thread_id[selected_monk],
+                        run_id=run.id
+                    )
+                    if run.status == "completed":
+                        messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
+                        new_message = messages.data[0].content[0].text.value
+                        new_message = remove_citation_markers(new_message)
 
-        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+                        # Stream response
+                        for char in new_message:
+                            full_response += char
+                            time.sleep(0.02)
+                            message_placeholder.markdown(f'<div class="message-bubble">{full_response}▌</div>', unsafe_allow_html=True)
 
-    except Exception as e:
-        logger.error(f"Error occurred: {str(e)}")
-        st.error(f"오류가 발생했습니다: {str(e)}")
+                        message_placeholder.markdown(f'<div class="message-bubble">{full_response}</div>', unsafe_allow_html=True)
+                        break
+                    elif run.status == "failed":
+                        st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
+                        logger.error(f"Run failed: {run.last_error}")
+                        break
+                    else:
+                        time.sleep(0.5)
+
+            st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+
+        except Exception as e:
+            logger.error(f"Error occurred: {str(e)}")
+            st.error(f"오류가 발생했습니다: {str(e)}")
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Button to reset the chat (hidden on mobile)
 if st.sidebar.button("대화 초기화"):
     st.session_state.messages[selected_monk] = []
     st.session_state.thread_id[selected_monk] = create_thread()
     st.experimental_rerun()
-
-st.markdown('</div>', unsafe_allow_html=True)
