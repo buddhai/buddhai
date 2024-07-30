@@ -46,6 +46,7 @@ tailwind_css = """
         background-color: white;
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        min-height: 60vh;
     }
     .stChatMessage {
         border-radius: 20px;
@@ -67,9 +68,9 @@ tailwind_css = """
     }
     .stTextInput {
         position: fixed;
-        bottom: 20px;
+        bottom: 50%;
         left: 50%;
-        transform: translateX(-50%);
+        transform: translate(-50%, 50%);
         width: calc(100% - 40px);
         max-width: 800px;
         padding: 15px;
