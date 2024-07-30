@@ -28,93 +28,124 @@ monks = {
 # Set up Streamlit page
 st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
 
-# Add Tailwind CSS
-tailwind_css = """
-<link href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+# Add custom CSS for KakaoTalk-like design
+kakao_css = """
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+    
+    body {
+        font-family: 'Noto Sans KR', sans-serif;
+        background-color: #9bbbd4;
+        color: #000000;
+    }
     .stApp {
-        width: 100%;
-        padding: 1rem;
-        box-sizing: border-box;
-        background-color: #f5f5f5;
+        max-width: 100%;
+        padding: 0;
     }
     .main-container {
-        width: 100%;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        min-height: 60vh;
+        max-width: 100%;
+        padding: 0;
+        background-color: #9bbbd4;
+    }
+    .chat-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #a1c0d5;
+        color: #000000;
+        padding: 10px 20px;
+        font-weight: bold;
+        font-size: 18px;
+        z-index: 1000;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .chat-container {
+        padding: 70px 10px 70px 10px;
+        overflow-y: auto;
+        height: calc(100vh - 140px);
     }
     .stChatMessage {
-        border-radius: 20px;
-        padding: 12px 18px;
-        margin: 8px 0;
-        max-width: 80%;
-        clear: both;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        background-color: transparent !important;
+        border-radius: 0 !important;
+        padding: 10px 0 !important;
+        margin: 5px 0 !important;
+        max-width: 100% !important;
+        width: auto !important;
+        box-shadow: none !important;
     }
     .stChatMessage.user {
-        background-color: #e6f3ff;
-        float: right;
-        border-bottom-right-radius: 0;
+        text-align: right;
     }
     .stChatMessage.assistant {
-        background-color: #f0f7e6;
-        float: left;
-        border-bottom-left-radius: 0;
+        text-align: left;
+    }
+    .message-bubble {
+        display: inline-block;
+        max-width: 70%;
+        padding: 8px 12px;
+        border-radius: 15px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .user .message-bubble {
+        background-color: #fef01b;
+        border-top-right-radius: 0;
+    }
+    .assistant .message-bubble {
+        background-color: #ffffff;
+        border-top-left-radius: 0;
     }
     .stTextInput {
         position: fixed;
-        bottom: 50%;
-        left: 50%;
-        transform: translate(-50%, 50%);
-        width: calc(100% - 40px);
-        max-width: 800px;
-        padding: 15px;
-        background-color: white;
-        border-radius: 30px;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 10px;
+        background-color: #eaeaea;
     }
-    ::-webkit-scrollbar {
-        width: 8px;
+    .stTextInput > div {
+        background-color: #ffffff;
+        border-radius: 20px;
+        padding: 5px 15px;
     }
-    ::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 10px;
+    .stTextInput input {
+        background-color: transparent;
+        border: none;
+        padding: 10px 0;
     }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-    @media (max-width: 768px) {
-        .main-container {
-            padding: 10px;
-        }
-        .stChatMessage {
-            max-width: 90%;
-        }
-    }
-    @keyframes pulse {
-        0% { opacity: 0.5; }
-        50% { opacity: 1; }
-        100% { opacity: 0.5; }
+    button {
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #fef01b;
+        color: #000000;
+        border: none;
+        font-size: 20px;
     }
     .loading-dots::after {
         content: '...';
         animation: pulse 1.5s infinite;
         display: inline-block;
     }
+    @keyframes pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+    }
 </style>
 """
-st.markdown(tailwind_css, unsafe_allow_html=True)
+st.markdown(kakao_css, unsafe_allow_html=True)
 
-# Sidebar for monk selection
+# Sidebar for monk selection (hidden on mobile)
 selected_monk = st.sidebar.radio("대화할 스님을 선택하세요", list(monks.keys()))
 
-# Main title
-st.title(f"{selected_monk}와의 대화")
+# Chat header
+st.markdown(f'<div class="chat-header">{selected_monk}와의 대화</div>', unsafe_allow_html=True)
 
 # Initialize session state for messages and thread IDs
 if "messages" not in st.session_state:
@@ -140,15 +171,17 @@ if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
 
 # Display chat messages
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
-        st.markdown(message["content"])
+    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else None):
+        st.markdown(f'<div class="message-bubble">{message["content"]}</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Handle user input
 if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="👤"):
-        st.markdown(prompt)
+    with st.chat_message("user"):
+        st.markdown(f'<div class="message-bubble">{prompt}</div>', unsafe_allow_html=True)
 
     try:
         # Send message to assistant
@@ -177,7 +210,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
 
             # Display "Generating response" message with loading animation
             message_placeholder.markdown("""
-            <div style="display: flex; align-items: center;">
+            <div class="message-bubble" style="display: flex; align-items: center;">
                 <span>답변을 생성 중</span><span class="loading-dots"></span>
             </div>
             """, unsafe_allow_html=True)
@@ -198,9 +231,9 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     for char in new_message:
                         full_response += char
                         time.sleep(0.02)
-                        message_placeholder.markdown(full_response + "▌")
+                        message_placeholder.markdown(f'<div class="message-bubble">{full_response}▌</div>', unsafe_allow_html=True)
 
-                    message_placeholder.markdown(full_response)
+                    message_placeholder.markdown(f'<div class="message-bubble">{full_response}</div>', unsafe_allow_html=True)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
@@ -215,7 +248,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
         logger.error(f"Error occurred: {str(e)}")
         st.error(f"오류가 발생했습니다: {str(e)}")
 
-# Button to reset the chat
+# Button to reset the chat (hidden on mobile)
 if st.sidebar.button("대화 초기화"):
     st.session_state.messages[selected_monk] = []
     st.session_state.thread_id[selected_monk] = create_thread()
