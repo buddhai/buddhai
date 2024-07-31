@@ -18,10 +18,10 @@ client = OpenAI(api_key=api_key)
 
 # 스님 목록과 아이콘
 monks = {
-    "스님 AI": "🧘",
-    "불교 경전 선생님": "🌸",
-    "선명상 전문가": "☯️",
-    "MZ 스님": "📿"
+    "스님AI": "🧘",
+    "불교 경전 선생님": "📚",
+    "선명상 전문가": "🧘‍♂️",
+    "MZ스님": "🙏"
 }
 
 # Streamlit 페이지 설정
@@ -33,44 +33,18 @@ st.markdown("""
     .stApp {
         background-color: #f5f5f5;
     }
-    .chat-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
     .stChatMessage {
+        background-color: white;
         padding: 12px 18px;
         margin: 8px 0;
-        border-radius: 20px;
-        max-width: 80%;
-        clear: both;
+        border-radius: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .stChatMessage.user {
         background-color: #e6f3ff;
-        float: right;
-        border-bottom-right-radius: 0;
     }
     .stChatMessage.assistant {
         background-color: #f0f7e6;
-        float: left;
-        border-bottom-left-radius: 0;
-    }
-    .chat-input {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 40px);
-        max-width: 760px;
-    }
-    .title-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
     }
     .stButton>button {
         background-color: #f44336;
@@ -82,9 +56,6 @@ st.markdown("""
 # 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
 selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
 
-# 채팅 컨테이너 시작
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
 col1, col2 = st.columns([3, 1])
 with col1:
@@ -93,7 +64,7 @@ with col2:
     if st.button("대화 초기화"):
         st.session_state.messages[selected_monk] = []
         st.session_state.thread_id[selected_monk] = None
-        st.experimental_rerun()
+        st.rerun()
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -123,11 +94,8 @@ for message in st.session_state.messages[selected_monk]:
     with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
         st.markdown(message["content"])
 
-# 채팅 컨테이너 닫기
-st.markdown('</div>', unsafe_allow_html=True)
-
 # 사용자 입력 처리
-prompt = st.chat_input(f"{selected_monk}에게 질문하세요", key="chat_input")
+prompt = st.chat_input(f"{selected_monk}에게 질문하세요")
 if prompt:
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="👤"):
