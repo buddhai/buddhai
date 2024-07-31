@@ -181,9 +181,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 # Handle user input
 if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(f'<div class="message-bubble">{prompt}</div>', unsafe_allow_html=True)
-
+    
     try:
         # Send message to assistant
         client.beta.threads.messages.create(
@@ -244,7 +242,6 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     time.sleep(0.5)
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
-        st.experimental_rerun()  # 채팅 내용을 즉시 업데이트하기 위해 페이지 새로고침
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
@@ -254,4 +251,4 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
 if st.sidebar.button("대화 초기화"):
     st.session_state.messages[selected_monk] = []
     st.session_state.thread_id[selected_monk] = create_thread()
-    st.experimental_rerun()
+    st.rerun()  # Use st.rerun() instead of st.experimental_rerun()
