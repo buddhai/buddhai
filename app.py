@@ -125,7 +125,7 @@ if prompt:
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
-            message_placeholder.markdown("답변을 생성 중...")
+            message_placeholder.markdown("답변을 생각 중...")
             
             full_response = ""
             
