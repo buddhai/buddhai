@@ -18,10 +18,10 @@ client = OpenAI(api_key=api_key)
 
 # List of monks and their icons
 monks = {
-    "스님 AI": "🧘",
+    "스님AI": "🧘",
     "금강경 선생님": "🌸",
     "선명상 전문가": "☯️",
-    "MZ 스님": "📿",
+    "MZ스님": "📿",
 }
 
 # Set up Streamlit page
