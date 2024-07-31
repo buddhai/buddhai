@@ -60,6 +60,8 @@ kakao_css = """
         box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
     .chat-container {
+        display: flex;
+        flex-direction: column;
         padding: 70px 10px 70px 10px;
         overflow-y: auto;
         height: calc(100vh - 140px);
@@ -242,6 +244,7 @@ if prompt := st.chat_input(f"{selected_monk}에게 질문하세요"):
                     time.sleep(0.5)
 
         st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+        st.experimental_rerun()  # 채팅 내용을 즉시 업데이트하기 위해 페이지 새로고침
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
