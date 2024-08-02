@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import logging
 import time
 import re
@@ -14,7 +14,7 @@ assistant_id = st.secrets["assistant"]["id"]
 vector_store_id = st.secrets["vector_store"]["id"]
 
 # OpenAI 클라이언트 초기화
-openai.api_key = api_key
+client = OpenAI(api_key=api_key)
 
 # 스님 목록과 아이콘
 monks = {
@@ -82,14 +82,13 @@ st.markdown("""
         padding: 10px 15px;
         border-radius: 20px;
         border: 1px solid #d1c3a6;
-        background-color: #fff9e6;
     }
 
     .stButton > button {
-        font-size: 0.8rem;
-        padding: 4px 8px;
+        font-size: 1rem;
+        padding: 8px 16px;
         border-radius: 20px;
-        background-color: #8b6e4e;
+        background-color: #FEC78B;
         color: white;
         transition: all 0.3s;
     }
@@ -109,34 +108,23 @@ st.markdown("""
         font-size: 16px;
         line-height: 1.6;
     }
-
-    .header-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .chat-input-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 10px;
-    }
-
-    .chat-input {
-        flex-grow: 1;
-        margin-right: 10px;
-    }
 </style>
 """, unsafe_allow_html=True)
+
+
 
 # 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
 selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
 
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
-st.markdown('<div class="header-container">', unsafe_allow_html=True)
-st.title(f"{monks[selected_monk]} {selected_monk}와의 대화")
-st.markdown('</div>', unsafe_allow_html=True)
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.title(f"{monks[selected_monk]} {selected_monk}와의 대화")
+with col2:
+    if st.button("대화 초기화", key="reset_button"):
+        st.session_state.messages[selected_monk] = []
+        st.session_state.thread_id[selected_monk] = None
+        st.rerun()  # 여기를 수정했습니다
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -147,7 +135,7 @@ if "thread_id" not in st.session_state:
 # Thread 생성 함수
 def create_thread():
     try:
-        thread = openai.Thread.create()
+        thread = client.beta.threads.create()
         return thread.id
     except Exception as e:
         logger.error(f"Thread creation failed: {str(e)}")
@@ -171,16 +159,7 @@ for message in st.session_state.messages[selected_monk]:
         st.markdown(message["content"])
 
 # 사용자 입력 처리
-st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
-prompt = st.chat_input(f"{selected_monk}에게 질문하세요", key="chat_input")
-reset_button_clicked = st.button("대화 초기화", key="reset_button")
-st.markdown('</div>', unsafe_allow_html=True)
-
-if reset_button_clicked:
-    st.session_state.messages[selected_monk] = []
-    st.session_state.thread_id[selected_monk] = None
-    st.rerun()
-
+prompt = st.chat_input(f"{selected_monk}에게 질문하세요")
 if prompt:
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -188,7 +167,7 @@ if prompt:
 
     try:
         # Assistant에 메시지 전송
-        openai.Thread.message_create(
+        client.beta.threads.messages.create(
             thread_id=st.session_state.thread_id[selected_monk],
             role="user",
             content=f"사용자가 {selected_monk}와 대화하고 있습니다: {prompt}"
@@ -205,7 +184,7 @@ if prompt:
             run_params["tools"] = [{"type": "file_search"}]
 
         logger.info(f"Creating run with params: {run_params}")
-        run = openai.Thread.run_create(**run_params)
+        run = client.beta.threads.runs.create(**run_params)
 
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
@@ -215,12 +194,12 @@ if prompt:
             full_response = ""
             
             while run.status not in ["completed", "failed"]:
-                run = openai.Thread.run_retrieve(
+                run = client.beta.threads.runs.retrieve(
                     thread_id=st.session_state.thread_id[selected_monk],
                     run_id=run.id
                 )
                 if run.status == "completed":
-                    messages = openai.Thread.message_list(thread_id=st.session_state.thread_id[selected_monk])
+                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
                     new_message = messages.data[0].content[0].text.value
                     new_message = remove_citation_markers(new_message)
                     
