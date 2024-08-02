@@ -30,48 +30,38 @@ st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide
 # 커스텀 CSS 추가
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo&display=swap');
+
+    body {
+        font-family: 'Nanum Myeongjo', serif;
+    }
+
     .stApp {
         background-color: #f5f5f5;
     }
+
+    .stRadio > label {
+        font-size: 1.2rem;
+        padding: 10px;
+        border-radius: 5px;
+        transition: all 0.3s;
+    }
+
+    .stRadio > label:hover {
+        background-color: #e6e6e6;
+    }
+
     .stChatMessage {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        transition: all 0.3s;
         background-color: white;
-        padding: 12px 18px;
-        margin: 8px 0;
-        border-radius: 15px;
+    }
+
+    .stChatMessage:hover {
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .stChatMessage.user {
-        background-color: #e6f3ff;
-    }
-    .stChatMessage.assistant {
-        background-color: #f0f7e6;
-    }
-    .stButton>button {
-        background-color: #f44336;
-        color: white;
-    }
-    /* 전체 앱 배경 */
-    body {
-        background-image: url('https://example.com/your-background-image.jpg');
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }
-
-    /* 메인 컨테이너 스타일링 */
-    .main .block-container {
-        background-color: rgba(255, 255, 255, 0.8);
-        padding: 2rem;
-        border-radius: 10px;
-    }
-
-    /* 채팅 메시지 스타일링 */
-    .stChatMessage {
-        background-color: #f0f0f0;
-        border-radius: 15px;
-        padding: 10px;
-        margin-bottom: 10px;
-    }
 
     .stChatMessage.user {
         background-color: #e6f3ff;
@@ -81,16 +71,35 @@ st.markdown("""
         background-color: #f0f7e6;
     }
 
-    /* 입력 필드 스타일링 */
     .stTextInput > div > div > input {
+        font-size: 1.1rem;
+        padding: 10px 15px;
         border-radius: 20px;
     }
 
-    /* 버튼 스타일링 */
     .stButton > button {
+        font-size: 1.1rem;
+        padding: 10px 20px;
         border-radius: 20px;
-        background-color: #4CAF50;
-        color: white;
+        transition: all 0.3s;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+        .stRadio > label {
+            font-size: 1rem;
+        }
+        .stTextInput > div > div > input {
+            font-size: 1rem;
+        }
+        .stButton > button {
+            font-size: 1rem;
+            padding: 8px 16px;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -101,12 +110,12 @@ selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys(
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
 col1, col2 = st.columns([3, 1])
 with col1:
-    st.title(f"{selected_monk}와의 대화")
+    st.title(f"{monks[selected_monk]} {selected_monk}와의 대화")
 with col2:
-    if st.button("대화 초기화"):
+    if st.button("대화 초기화", key="reset_button"):
         st.session_state.messages[selected_monk] = []
         st.session_state.thread_id[selected_monk] = None
-        st.rerun()
+        st.experimental_rerun()
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -131,16 +140,20 @@ def remove_citation_markers(text):
 if st.session_state.thread_id[selected_monk] is None:
     st.session_state.thread_id[selected_monk] = create_thread()
 
+# 기본 안내 메시지 추가
+if not st.session_state.messages[selected_monk]:
+    st.info(f"안녕하세요! {selected_monk}와의 대화를 시작합니다. 어떤 질문이 있으신가요?")
+
 # 채팅 메시지 표시
 for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else "👤"):
+    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else None):
         st.markdown(message["content"])
 
 # 사용자 입력 처리
 prompt = st.chat_input(f"{selected_monk}에게 질문하세요")
 if prompt:
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="👤"):
+    with st.chat_message("user"):
         st.markdown(prompt)
 
     try:
