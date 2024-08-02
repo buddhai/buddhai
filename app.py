@@ -50,6 +50,48 @@ st.markdown("""
         background-color: #f44336;
         color: white;
     }
+    /* 전체 앱 배경 */
+    body {
+        background-image: url('https://example.com/your-background-image.jpg');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+
+    /* 메인 컨테이너 스타일링 */
+    .main .block-container {
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 2rem;
+        border-radius: 10px;
+    }
+
+    /* 채팅 메시지 스타일링 */
+    .stChatMessage {
+        background-color: #f0f0f0;
+        border-radius: 15px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    .stChatMessage.user {
+        background-color: #e6f3ff;
+    }
+
+    .stChatMessage.assistant {
+        background-color: #f0f7e6;
+    }
+
+    /* 입력 필드 스타일링 */
+    .stTextInput > div > div > input {
+        border-radius: 20px;
+    }
+
+    /* 버튼 스타일링 */
+    .stButton > button {
+        border-radius: 20px;
+        background-color: #4CAF50;
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
