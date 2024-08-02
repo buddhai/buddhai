@@ -88,7 +88,7 @@ st.markdown("""
         font-size: 1rem;
         padding: 8px 16px;
         border-radius: 20px;
-        background-color: #8b6e4e;
+        background-color: #FEC78B;
         color: white;
         transition: all 0.3s;
     }
