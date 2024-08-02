@@ -37,7 +37,7 @@ st.markdown("""
     }
 
     .stApp {
-        background-color: #E6D6C3;
+        background-color: #F9ECDD;
     }
 
     .stRadio > label {
