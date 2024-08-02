@@ -115,7 +115,7 @@ with col2:
     if st.button("대화 초기화", key="reset_button"):
         st.session_state.messages[selected_monk] = []
         st.session_state.thread_id[selected_monk] = None
-        st.experimental_rerun()
+        st.rerun()  # 여기를 수정했습니다
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
