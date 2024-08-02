@@ -168,7 +168,7 @@ if prompt:
         client.beta.threads.messages.create(
             thread_id=st.session_state.thread_id[selected_monk],
             role="user",
-            content=f"사용자가 {selected_monk}와 대화하고 있습니다: {prompt}"
+            content=prompt
         )
 
         # run 생성
@@ -187,15 +187,14 @@ if prompt:
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
-            message_placeholder.markdown("답변을 생성 중...")
-            
             full_response = ""
             
-            while run.status not in ["completed", "failed"]:
+            while run.status not in ["completed", "failed", "expired"]:
                 run = client.beta.threads.runs.retrieve(
                     thread_id=st.session_state.thread_id[selected_monk],
                     run_id=run.id
                 )
+                
                 if run.status == "completed":
                     messages = client.beta.threads.messages.list(
                         thread_id=st.session_state.thread_id[selected_monk],
@@ -203,24 +202,23 @@ if prompt:
                         after=st.session_state.messages[selected_monk][-1].get("message_id")
                     )
                     
-                    for message in messages.data:
-                        for content in message.content:
-                            if content.type == 'text':
-                                new_content = remove_citation_markers(content.text.value)
-                                
-                                # Stream response
-                                for char in new_content:
-                                    full_response += char
-                                    time.sleep(0.01)
-                                    message_placeholder.markdown(full_response + "▌")
+                    new_message = messages.data[0].content[0].text.value
+                    new_message = remove_citation_markers(new_message)
+                    
+                    # Stream response
+                    for char in new_message:
+                        full_response += char
+                        time.sleep(0.02)
+                        message_placeholder.markdown(full_response + "▌")
                     
                     message_placeholder.markdown(full_response)
                     break
-                elif run.status == "failed":
-                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
-                    logger.error(f"Run failed: {run.last_error}")
+                elif run.status in ["failed", "expired"]:
+                    st.error(f"응답 생성에 실패했습니다. 상태: {run.status}")
+                    logger.error(f"Run {run.status}: {run.last_error}")
                     break
                 else:
+                    message_placeholder.markdown("답변을 생성 중입니다...")
                     time.sleep(0.5)
 
         st.session_state.messages[selected_monk].append({
