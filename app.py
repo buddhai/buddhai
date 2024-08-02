@@ -82,12 +82,12 @@ st.markdown("""
         padding: 10px 15px;
         border-radius: 20px;
         border: 1px solid #d1c3a6;
-        background-color: #fff9e6; /* 여기서 입력창의 배경색을 변경할 수 있습니다 */
+        background-color: #fff9e6;
     }
 
     .stButton > button {
-        font-size: 0.8rem; /* 버튼 크기 줄이기 */
-        padding: 4px 8px; /* 버튼 크기 줄이기 */
+        font-size: 0.8rem;
+        padding: 4px 8px;
         border-radius: 20px;
         background-color: #8b6e4e;
         color: white;
@@ -115,6 +115,18 @@ st.markdown("""
         justify-content: space-between;
         align-items: center;
     }
+
+    .chat-input-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+    }
+
+    .chat-input {
+        flex-grow: 1;
+        margin-right: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -124,10 +136,6 @@ selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys(
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
 st.markdown('<div class="header-container">', unsafe_allow_html=True)
 st.title(f"{monks[selected_monk]} {selected_monk}와의 대화")
-if st.button("대화 초기화", key="reset_button"):
-    st.session_state.messages[selected_monk] = []
-    st.session_state.thread_id[selected_monk] = None
-    st.rerun()  # 여기를 수정했습니다
 st.markdown('</div>', unsafe_allow_html=True)
 
 # 세션 상태 초기화
@@ -163,7 +171,16 @@ for message in st.session_state.messages[selected_monk]:
         st.markdown(message["content"])
 
 # 사용자 입력 처리
-prompt = st.chat_input(f"{selected_monk}에게 질문하세요")
+st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
+prompt = st.chat_input(f"{selected_monk}에게 질문하세요", key="chat_input")
+reset_button_clicked = st.button("대화 초기화", key="reset_button")
+st.markdown('</div>', unsafe_allow_html=True)
+
+if reset_button_clicked:
+    st.session_state.messages[selected_monk] = []
+    st.session_state.thread_id[selected_monk] = None
+    st.rerun()
+
 if prompt:
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
     with st.chat_message("user"):
