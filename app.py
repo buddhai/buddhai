@@ -35,6 +35,7 @@ st.markdown("""
     body {
         font-family: 'Nanum Myeongjo', serif;
         background-color: #f5f0e8;
+        color: #333;
     }
 
     .main-container {
@@ -62,15 +63,18 @@ st.markdown("""
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 15px;
-        line-height: 1.5;
+        line-height: 1.6;
+        font-size: 16px;
     }
 
     .user-message {
         background-color: #e6f3ff;
+        margin-left: 20px;
     }
 
     .assistant-message {
         background-color: #f0f7e6;
+        margin-right: 20px;
     }
 
     .stTextInput > div > div > input {
@@ -93,8 +97,20 @@ st.markdown("""
         background-color: #6d563d;
         transform: translateY(-2px);
     }
+
+    .stApp {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .stMarkdown {
+        font-size: 16px;
+        line-height: 1.6;
+    }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
