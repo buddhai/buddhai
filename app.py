@@ -111,6 +111,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
+
 # 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
 selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
 
@@ -122,7 +124,7 @@ with col2:
     if st.button("대화 초기화", key="reset_button"):
         st.session_state.messages[selected_monk] = []
         st.session_state.thread_id[selected_monk] = None
-        st.rerun()
+        st.rerun()  # 여기를 수정했습니다
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -168,7 +170,7 @@ if prompt:
         client.beta.threads.messages.create(
             thread_id=st.session_state.thread_id[selected_monk],
             role="user",
-            content=prompt
+            content=f"사용자가 {selected_monk}와 대화하고 있습니다: {prompt}"
         )
 
         # run 생성
@@ -187,21 +189,17 @@ if prompt:
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
+            message_placeholder.markdown("답변을 생각 중...")
+            
             full_response = ""
             
-            while run.status not in ["completed", "failed", "expired"]:
+            while run.status not in ["completed", "failed"]:
                 run = client.beta.threads.runs.retrieve(
                     thread_id=st.session_state.thread_id[selected_monk],
                     run_id=run.id
                 )
-                
                 if run.status == "completed":
-                    messages = client.beta.threads.messages.list(
-                        thread_id=st.session_state.thread_id[selected_monk],
-                        order="asc",
-                        after=st.session_state.messages[selected_monk][-1].get("message_id")
-                    )
-                    
+                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
                     new_message = messages.data[0].content[0].text.value
                     new_message = remove_citation_markers(new_message)
                     
@@ -213,19 +211,14 @@ if prompt:
                     
                     message_placeholder.markdown(full_response)
                     break
-                elif run.status in ["failed", "expired"]:
-                    st.error(f"응답 생성에 실패했습니다. 상태: {run.status}")
-                    logger.error(f"Run {run.status}: {run.last_error}")
+                elif run.status == "failed":
+                    st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
+                    logger.error(f"Run failed: {run.last_error}")
                     break
                 else:
-                    message_placeholder.markdown("답변을 생성 중입니다...")
                     time.sleep(0.5)
 
-        st.session_state.messages[selected_monk].append({
-            "role": "assistant",
-            "content": full_response,
-            "message_id": messages.data[-1].id if messages.data else None
-        })
+        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
