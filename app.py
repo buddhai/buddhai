@@ -111,8 +111,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-
 # 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
 selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
 
@@ -124,7 +122,7 @@ with col2:
     if st.button("대화 초기화", key="reset_button"):
         st.session_state.messages[selected_monk] = []
         st.session_state.thread_id[selected_monk] = None
-        st.rerun()  # 여기를 수정했습니다
+        st.rerun()
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -189,7 +187,7 @@ if prompt:
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=monks[selected_monk]):
             message_placeholder = st.empty()
-            message_placeholder.markdown("답변을 생각 중...")
+            message_placeholder.markdown("답변을 생성 중...")
             
             full_response = ""
             
@@ -199,15 +197,22 @@ if prompt:
                     run_id=run.id
                 )
                 if run.status == "completed":
-                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
-                    new_message = messages.data[0].content[0].text.value
-                    new_message = remove_citation_markers(new_message)
+                    messages = client.beta.threads.messages.list(
+                        thread_id=st.session_state.thread_id[selected_monk],
+                        order="asc",
+                        after=st.session_state.messages[selected_monk][-1].get("message_id")
+                    )
                     
-                    # Stream response
-                    for char in new_message:
-                        full_response += char
-                        time.sleep(0.02)
-                        message_placeholder.markdown(full_response + "▌")
+                    for message in messages.data:
+                        for content in message.content:
+                            if content.type == 'text':
+                                new_content = remove_citation_markers(content.text.value)
+                                
+                                # Stream response
+                                for char in new_content:
+                                    full_response += char
+                                    time.sleep(0.01)
+                                    message_placeholder.markdown(full_response + "▌")
                     
                     message_placeholder.markdown(full_response)
                     break
@@ -218,7 +223,11 @@ if prompt:
                 else:
                     time.sleep(0.5)
 
-        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+        st.session_state.messages[selected_monk].append({
+            "role": "assistant",
+            "content": full_response,
+            "message_id": messages.data[-1].id if messages.data else None
+        })
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
