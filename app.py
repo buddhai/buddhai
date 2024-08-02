@@ -34,75 +34,68 @@ st.markdown("""
 
     body {
         font-family: 'Nanum Myeongjo', serif;
+        background-color: #f5f0e8;
     }
 
-    .stApp {
-        background-color: #FAF4EC;
+    .main-container {
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+        background-color: #fff9e6;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .stRadio > label {
-        font-size: 1.2rem;
-        padding: 10px;
-        border-radius: 5px;
+        font-size: 1.1rem;
+        padding: 8px 15px;
+        border-radius: 20px;
+        background-color: #f0e6d2;
         transition: all 0.3s;
     }
 
     .stRadio > label:hover {
-        background-color: #e6e6e6;
+        background-color: #e6d8b5;
     }
 
-    .stChatMessage {
+    .chat-message {
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 15px;
-        transition: all 0.3s;
-        background-color: white;
+        line-height: 1.5;
     }
 
-    .stChatMessage:hover {
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    .stChatMessage.user {
+    .user-message {
         background-color: #e6f3ff;
     }
 
-    .stChatMessage.assistant {
+    .assistant-message {
         background-color: #f0f7e6;
     }
 
     .stTextInput > div > div > input {
-        font-size: 1.1rem;
+        font-size: 1rem;
         padding: 10px 15px;
         border-radius: 20px;
+        border: 1px solid #d1c3a6;
     }
 
     .stButton > button {
-        font-size: 1.1rem;
-        padding: 10px 20px;
+        font-size: 1rem;
+        padding: 8px 16px;
         border-radius: 20px;
+        background-color: #8b6e4e;
+        color: white;
         transition: all 0.3s;
     }
 
     .stButton > button:hover {
+        background-color: #6d563d;
         transform: translateY(-2px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    @media (max-width: 768px) {
-        .stRadio > label {
-            font-size: 1rem;
-        }
-        .stTextInput > div > div > input {
-            font-size: 1rem;
-        }
-        .stButton > button {
-            font-size: 1rem;
-            padding: 8px 16px;
-        }
     }
 </style>
 """, unsafe_allow_html=True)
+
 
 # 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
 selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
