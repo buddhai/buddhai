@@ -66,7 +66,7 @@ st.markdown("""
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 15px;
-        line-height: 3;  /* 행간 조정 */
+        line-height: 20;  /* 행간 조정 */
         font-size: 16px;
     }
 
