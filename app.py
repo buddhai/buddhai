@@ -62,20 +62,11 @@ st.markdown("""
         background-color: #e6d8b5;
     }
 
-    .element-container .stChatMessage.stChatMessageUser {
-        background-color: #e6f3ff !important;
-        border: 1px solid #b8d3ff !important;
-        border-radius: 10px !important;
-        padding: 15px !important;
-        margin-bottom: 20px !important;
-    }
-
-    .element-container .stChatMessage:not(.stChatMessageUser) {
-        background-color: #f9f9f9 !important;
-        border: 1px solid #e0e0e0 !important;
-        border-radius: 10px !important;
-        padding: 15px !important;
-        margin-bottom: 20px !important;
+    .element-container .stChatMessage {
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-bottom: 0 !important;
     }
 
     .stTextInput > div > div > input {
@@ -156,7 +147,9 @@ if not st.session_state.messages[selected_monk]:
 for message in st.session_state.messages[selected_monk]:
     avatar = monks[selected_monk] if message["role"] == "assistant" else user_icon
     with st.chat_message(message["role"], avatar=avatar):
-        st.markdown(f"<div style='background-color: {'#e6f3ff' if message['role'] == 'user' else '#f9f9f9'}; border: 1px solid {'#b8d3ff' if message['role'] == 'user' else '#e0e0e0'}; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{message['content']}</div>", unsafe_allow_html=True)
+        bg_color = '#e6f3ff' if message["role"] == "user" else '#f9f9f9'
+        border_color = '#b8d3ff' if message["role"] == "user" else '#e0e0e0'
+        st.markdown(f"<div style='background-color: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{message['content']}</div>", unsafe_allow_html=True)
 
 # 사용자 입력 처리
 prompt = st.chat_input(f"{selected_monk}에게 질문하세요")
