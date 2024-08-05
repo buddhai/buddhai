@@ -24,6 +24,9 @@ monks = {
     "MZ스님": "🙏"
 }
 
+# 사용자 아이콘 설정
+user_icon = "🧑🏻‍💻"
+
 # Streamlit 페이지 설정
 st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
 
@@ -63,7 +66,7 @@ st.markdown("""
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 15px;
-        line-height: 1.6;
+        line-height: 2;  /* 행간 조정 */
         font-size: 16px;
     }
 
@@ -73,7 +76,7 @@ st.markdown("""
     }
 
     .assistant-message {
-        background-color: #f0f7e6;
+        background-color: #e6f3ff; 
         margin-right: 20px;
     }
 
@@ -111,8 +114,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-
 # 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
 selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
 
@@ -124,7 +125,7 @@ with col2:
     if st.button("대화 초기화", key="reset_button"):
         st.session_state.messages[selected_monk] = []
         st.session_state.thread_id[selected_monk] = None
-        st.rerun()  # 여기를 수정했습니다
+        st.rerun()
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -155,14 +156,15 @@ if not st.session_state.messages[selected_monk]:
 
 # 채팅 메시지 표시
 for message in st.session_state.messages[selected_monk]:
-    with st.chat_message(message["role"], avatar=monks[selected_monk] if message["role"] == "assistant" else None):
+    avatar = monks[selected_monk] if message["role"] == "assistant" else user_icon
+    with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
 # 사용자 입력 처리
 prompt = st.chat_input(f"{selected_monk}에게 질문하세요")
 if prompt:
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=user_icon):
         st.markdown(prompt)
 
     try:
