@@ -62,22 +62,20 @@ st.markdown("""
         background-color: #e6d8b5;
     }
 
-    .chat-message {
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 15px;
-        line-height: 20;  /* 행간 조정 */
-        font-size: 16px;
+    .element-container .stChatMessage.stChatMessageUser {
+        background-color: #e6f3ff !important;
+        border: 1px solid #b8d3ff !important;
+        border-radius: 10px !important;
+        padding: 15px !important;
+        margin-bottom: 20px !important;
     }
 
-    .user-message {
-        background-color: #e6f3ff;
-        margin-left: 20px;
-    }
-
-    .assistant-message {
-        background-color: #e6f3ff; 
-        margin-right: 20px;
+    .element-container .stChatMessage:not(.stChatMessageUser) {
+        background-color: #f9f9f9 !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 10px !important;
+        padding: 15px !important;
+        margin-bottom: 20px !important;
     }
 
     .stTextInput > div > div > input {
@@ -110,29 +108,6 @@ st.markdown("""
     .stMarkdown {
         font-size: 16px;
         line-height: 1.6;
-    }
-            
-    .chat-message {
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 30px !important;
-        line-height: 1.6 !important;
-        font-size: 16px;
-    }
-
-    .user-message {
-        background-color: #e6f3ff;
-        margin-left: 20px;
-        padding-top: 20px !important;
-        padding-bottom: 20px !important;
-    }
-
-    .assistant-message {
-        background-color: #f9f9f9;  /* 연한 배경색 추가 */
-        border: 1px solid #e0e0e0;  /* 경계선 추가 */
-        margin-right: 20px;
-        padding-top: 20px !important;
-        padding-bottom: 20px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -181,14 +156,14 @@ if not st.session_state.messages[selected_monk]:
 for message in st.session_state.messages[selected_monk]:
     avatar = monks[selected_monk] if message["role"] == "assistant" else user_icon
     with st.chat_message(message["role"], avatar=avatar):
-        st.markdown(message["content"])
+        st.markdown(f"<div style='background-color: {'#e6f3ff' if message['role'] == 'user' else '#f9f9f9'}; border: 1px solid {'#b8d3ff' if message['role'] == 'user' else '#e0e0e0'}; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{message['content']}</div>", unsafe_allow_html=True)
 
 # 사용자 입력 처리
 prompt = st.chat_input(f"{selected_monk}에게 질문하세요")
 if prompt:
     st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=user_icon):
-        st.markdown(prompt)
+        st.markdown(f"<div style='background-color: #e6f3ff; border: 1px solid #b8d3ff; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{prompt}</div>", unsafe_allow_html=True)
 
     try:
         # Assistant에 메시지 전송
@@ -232,9 +207,9 @@ if prompt:
                     for char in new_message:
                         full_response += char
                         time.sleep(0.02)
-                        message_placeholder.markdown(full_response + "▌")
+                        message_placeholder.markdown(f"<div style='background-color: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{full_response}▌</div>", unsafe_allow_html=True)
                     
-                    message_placeholder.markdown(full_response)
+                    message_placeholder.markdown(f"<div style='background-color: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{full_response}</div>", unsafe_allow_html=True)
                     break
                 elif run.status == "failed":
                     st.error("응답 생성에 실패했습니다. 다시 시도해 주세요.")
