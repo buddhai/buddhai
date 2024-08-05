@@ -111,6 +111,29 @@ st.markdown("""
         font-size: 16px;
         line-height: 1.6;
     }
+            
+    .chat-message {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 30px !important;
+        line-height: 1.6 !important;
+        font-size: 16px;
+    }
+
+    .user-message {
+        background-color: #e6f3ff;
+        margin-left: 20px;
+        padding-top: 20px !important;
+        padding-bottom: 20px !important;
+    }
+
+    .assistant-message {
+        background-color: #f9f9f9;  /* 연한 배경색 추가 */
+        border: 1px solid #e0e0e0;  /* 경계선 추가 */
+        margin-right: 20px;
+        padding-top: 20px !important;
+        padding-bottom: 20px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
