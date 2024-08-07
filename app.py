@@ -24,7 +24,7 @@ ai_icon = "🧘"
 user_icon = "🧑🏻‍💻"
 
 # Streamlit 페이지 설정
-st.set_page_config(page_title="불교 AI 스님과의 대화", page_icon="🧘", layout="wide")
+st.set_page_config(page_title="스님AI", page_icon="🧘", layout="wide")
 
 # 커스텀 CSS 추가
 st.markdown("""
