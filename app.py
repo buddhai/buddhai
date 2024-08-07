@@ -120,6 +120,20 @@ def remove_citation_markers(text):
 if st.session_state.thread_id is None:
     st.session_state.thread_id = create_thread()
 
+# 기존 대화 메시지 입력
+st.subheader("기존 대화 내용")
+existing_conversation = st.text_area("기존에 있던 대화 내용을 여기에 입력하세요. (선택사항)", height=200)
+if st.button("대화 내용 적용"):
+    # 기존 대화 내용을 파싱하여 messages에 추가
+    lines = existing_conversation.split('\n')
+    for line in lines:
+        if line.startswith("사용자:"):
+            st.session_state.messages.append({"role": "user", "content": line[4:].strip()})
+        elif line.startswith(f"{ai_persona}:"):
+            st.session_state.messages.append({"role": "assistant", "content": line[len(ai_persona)+1:].strip()})
+    st.success("기존 대화 내용이 적용되었습니다.")
+    st.rerun()
+
 # 기본 안내 메시지 추가
 if not st.session_state.messages:
     st.info(f"안녕하세요! {ai_persona}과의 대화를 시작합니다. 어떤 질문이 있으신가요?")
@@ -138,6 +152,10 @@ for message in st.session_state.messages:
 # 사용자 입력 처리
 prompt = st.chat_input(f"{ai_persona}에게 질문하세요")
 if prompt:
+    # messages가 리스트가 아니면 초기화
+    if not isinstance(st.session_state.messages, list):
+        st.session_state.messages = []
+    
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=user_icon):
         st.markdown(f"<div style='background-color: #e6f3ff; border: 1px solid #b8d3ff; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{prompt}</div>", unsafe_allow_html=True)
