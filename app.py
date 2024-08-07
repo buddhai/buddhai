@@ -16,19 +16,15 @@ vector_store_id = st.secrets["vector_store"]["id"]
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
 
-# 스님 목록과 아이콘
-monks = {
-    "스님AI": "🧘",
-    "불교 경전 선생님": "📚",
-    "선명상 전문가": "🧘‍♂️",
-    "MZ스님": "🙏"
-}
+# 단일 페르소나 설정
+ai_persona = "불교 AI 스님"
+ai_icon = "🧘"
 
 # 사용자 아이콘 설정
 user_icon = "🧑🏻‍💻"
 
 # Streamlit 페이지 설정
-st.set_page_config(page_title="불교 스님 AI", page_icon="🧘", layout="wide")
+st.set_page_config(page_title="불교 AI 스님과의 대화", page_icon="🧘", layout="wide")
 
 # 커스텀 CSS 추가
 st.markdown("""
@@ -48,18 +44,6 @@ st.markdown("""
         background-color: #fff9e6;
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .stRadio > label {
-        font-size: 1.1rem;
-        padding: 8px 15px;
-        border-radius: 20px;
-        background-color: #f0e6d2;
-        transition: all 0.3s;
-    }
-
-    .stRadio > label:hover {
-        background-color: #e6d8b5;
     }
 
     .element-container .stChatMessage {
@@ -103,24 +87,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 상단 메뉴바에 스님 선택 옵션을 라디오 버튼으로 추가
-selected_monk = st.radio("대화할 스님을 선택하세요", list(monks.keys()), horizontal=True)
-
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
 col1, col2 = st.columns([3, 1])
 with col1:
-    st.title(f"{monks[selected_monk]} {selected_monk}와의 대화")
+    st.title(f"{ai_icon} {ai_persona}과의 대화")
 with col2:
     if st.button("대화 초기화", key="reset_button"):
-        st.session_state.messages[selected_monk] = []
-        st.session_state.thread_id[selected_monk] = None
+        st.session_state.messages = []
+        st.session_state.thread_id = None
         st.rerun()
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
-    st.session_state.messages = {monk: [] for monk in monks}
+    st.session_state.messages = []
 if "thread_id" not in st.session_state:
-    st.session_state.thread_id = {monk: None for monk in monks}
+    st.session_state.thread_id = None
 
 # Thread 생성 함수
 def create_thread():
@@ -136,39 +117,39 @@ def remove_citation_markers(text):
     return re.sub(r'【\d+:\d+†source】', '', text)
 
 # Thread 초기화
-if st.session_state.thread_id[selected_monk] is None:
-    st.session_state.thread_id[selected_monk] = create_thread()
+if st.session_state.thread_id is None:
+    st.session_state.thread_id = create_thread()
 
 # 기본 안내 메시지 추가
-if not st.session_state.messages[selected_monk]:
-    st.info(f"안녕하세요! {selected_monk}와의 대화를 시작합니다. 어떤 질문이 있으신가요?")
+if not st.session_state.messages:
+    st.info(f"안녕하세요! {ai_persona}과의 대화를 시작합니다. 어떤 질문이 있으신가요?")
 
 # 채팅 메시지 표시
-for message in st.session_state.messages[selected_monk]:
-    avatar = monks[selected_monk] if message["role"] == "assistant" else user_icon
+for message in st.session_state.messages:
+    avatar = ai_icon if message["role"] == "assistant" else user_icon
     with st.chat_message(message["role"], avatar=avatar):
         bg_color = '#e6f3ff' if message["role"] == "user" else '#f9f9f9'
         border_color = '#b8d3ff' if message["role"] == "user" else '#e0e0e0'
         st.markdown(f"<div style='background-color: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{message['content']}</div>", unsafe_allow_html=True)
 
 # 사용자 입력 처리
-prompt = st.chat_input(f"{selected_monk}에게 질문하세요")
+prompt = st.chat_input(f"{ai_persona}에게 질문하세요")
 if prompt:
-    st.session_state.messages[selected_monk].append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=user_icon):
         st.markdown(f"<div style='background-color: #e6f3ff; border: 1px solid #b8d3ff; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{prompt}</div>", unsafe_allow_html=True)
 
     try:
         # Assistant에 메시지 전송
         client.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id[selected_monk],
+            thread_id=st.session_state.thread_id,
             role="user",
-            content=f"사용자가 {selected_monk}와 대화하고 있습니다: {prompt}"
+            content=f"사용자가 {ai_persona}과 대화하고 있습니다: {prompt}"
         )
 
         # run 생성
         run_params = {
-            "thread_id": st.session_state.thread_id[selected_monk],
+            "thread_id": st.session_state.thread_id,
             "assistant_id": assistant_id,
         }
 
@@ -180,7 +161,7 @@ if prompt:
         run = client.beta.threads.runs.create(**run_params)
 
         # 응답 대기 및 표시
-        with st.chat_message("assistant", avatar=monks[selected_monk]):
+        with st.chat_message("assistant", avatar=ai_icon):
             message_placeholder = st.empty()
             message_placeholder.markdown("답변을 생각 중...")
             
@@ -188,11 +169,11 @@ if prompt:
             
             while run.status not in ["completed", "failed"]:
                 run = client.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id[selected_monk],
+                    thread_id=st.session_state.thread_id,
                     run_id=run.id
                 )
                 if run.status == "completed":
-                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id[selected_monk])
+                    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id)
                     new_message = messages.data[0].content[0].text.value
                     new_message = remove_citation_markers(new_message)
                     
@@ -211,7 +192,7 @@ if prompt:
                 else:
                     time.sleep(0.5)
 
-        st.session_state.messages[selected_monk].append({"role": "assistant", "content": full_response})
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
