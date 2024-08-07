@@ -126,11 +126,14 @@ if not st.session_state.messages:
 
 # 채팅 메시지 표시
 for message in st.session_state.messages:
-    avatar = ai_icon if message["role"] == "assistant" else user_icon
-    with st.chat_message(message["role"], avatar=avatar):
-        bg_color = '#e6f3ff' if message["role"] == "user" else '#f9f9f9'
-        border_color = '#b8d3ff' if message["role"] == "user" else '#e0e0e0'
-        st.markdown(f"<div style='background-color: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{message['content']}</div>", unsafe_allow_html=True)
+    if isinstance(message, dict) and "role" in message and "content" in message:
+        avatar = ai_icon if message["role"] == "assistant" else user_icon
+        with st.chat_message(message["role"], avatar=avatar):
+            bg_color = '#e6f3ff' if message["role"] == "user" else '#f9f9f9'
+            border_color = '#b8d3ff' if message["role"] == "user" else '#e0e0e0'
+            st.markdown(f"<div style='background-color: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 15px; margin-bottom: 20px;'>{message['content']}</div>", unsafe_allow_html=True)
+    else:
+        logger.warning(f"Unexpected message format: {message}")
 
 # 사용자 입력 처리
 prompt = st.chat_input(f"{ai_persona}에게 질문하세요")
