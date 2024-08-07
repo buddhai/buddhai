@@ -30,7 +30,7 @@ def remove_citation_markers(text):
     return re.sub(r'【\d+:\d+†source】', '', text)
 
 # 단일 페르소나 설정
-ai_persona = "스님AI"
+ai_persona = "스님 AI"
 ai_icon = "🧘"
 
 # 사용자 아이콘 설정
