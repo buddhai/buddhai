@@ -4,7 +4,112 @@ import logging
 import time
 import re
 
-# (이전 코드는 동일하게 유지)
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Streamlit secrets에서 설정한 시크릿 값을 사용
+api_key = st.secrets["openai"]["api_key"]
+assistant_id = st.secrets["assistant"]["id"]
+vector_store_id = st.secrets["vector_store"]["id"]
+
+# OpenAI 클라이언트 초기화
+client = OpenAI(api_key=api_key)
+
+# Thread 생성 함수
+def create_thread():
+    try:
+        thread = client.beta.threads.create()
+        return thread.id
+    except Exception as e:
+        logger.error(f"Thread creation failed: {str(e)}")
+        return None
+
+# 인용 마커 제거 함수
+def remove_citation_markers(text):
+    return re.sub(r'【\d+:\d+†source】', '', text)
+
+# 단일 페르소나 설정
+ai_persona = "불교 AI 스님"
+ai_icon = "🧘"
+
+# 사용자 아이콘 설정
+user_icon = "🧑🏻‍💻"
+
+# Streamlit 페이지 설정
+st.set_page_config(page_title="불교 AI 스님과의 대화", page_icon="🧘", layout="wide")
+
+# 커스텀 CSS 추가
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo&display=swap');
+
+    body {
+        font-family: 'Nanum Myeongjo', serif;
+        background-color: #f5f0e8;
+        color: #333;
+    }
+
+    .main-container {
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+        background-color: #fff9e6;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .element-container .stChatMessage {
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    .stTextInput > div > div > input {
+        font-size: 1rem;
+        padding: 10px 15px;
+        border-radius: 20px;
+        border: 1px solid #d1c3a6;
+    }
+
+    .stButton > button {
+        font-size: 1rem;
+        padding: 8px 16px;
+        border-radius: 20px;
+        background-color: #FEC78B;
+        color: white;
+        transition: all 0.3s;
+    }
+
+    .stButton > button:hover {
+        background-color: #6d563d;
+        transform: translateY(-2px);
+    }
+
+    .stApp {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .stMarkdown {
+        font-size: 16px;
+        line-height: 1.6;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 제목과 초기화 버튼을 하나의 컨테이너에 배치
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.title(f"{ai_icon} {ai_persona}과의 대화")
+with col2:
+    if st.button("대화 초기화", key="reset_button"):
+        st.session_state.messages = []
+        st.session_state.thread_id = None
+        st.session_state.initialized = False
+        st.rerun()
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
@@ -35,7 +140,6 @@ for message in st.session_state.messages:
     else:
         logger.warning(f"Unexpected message format: {message}")
 
-# (이하 코드는 동일하게 유지)
 # 사용자 입력 처리
 prompt = st.chat_input(f"{ai_persona}에게 질문하세요")
 if prompt:
