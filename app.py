@@ -125,7 +125,7 @@ if st.session_state.thread_id is None:
 
 # 초기 안내 메시지 추가 (한 번만 실행되도록 수정)
 if not st.session_state.initialized:
-    initial_message = "안녕하세요! 스님 AI와 대화를 시작합니다. 어떤 질문이 있으신가요?"
+    initial_message = "안녕하세요! 스님 AI와 대화를 시작합니다. 어떤 질문이 있으신가요? \n 아래 입력창에 고민이나 질문을 입력하세요."
     st.session_state.messages.append({"role": "assistant", "content": initial_message})
     st.session_state.initialized = True
 
