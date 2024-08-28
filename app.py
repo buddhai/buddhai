@@ -101,7 +101,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
-col1, col2 = st.columns([3, 1])
+col1, col2 = st.columns([4, 1])
 with col1:
     st.title(f"{ai_icon} {ai_persona}와의 대화")
 with col2:
