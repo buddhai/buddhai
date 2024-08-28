@@ -30,14 +30,14 @@ def remove_citation_markers(text):
     return re.sub(r'【\d+:\d+†source】', '', text)
 
 # 단일 페르소나 설정
-ai_persona = "불교 AI 스님"
-ai_icon = "🧘"
+ai_persona = "불교친구 연두부"
+ai_icon = "🪷"
 
 # 사용자 아이콘 설정
 user_icon = "🧑🏻‍💻"
 
 # Streamlit 페이지 설정
-st.set_page_config(page_title="불교 AI 스님과의 대화", page_icon="🧘", layout="wide")
+st.set_page_config(page_title="불교친구 연두부", page_icon="🪷", layout="wide")
 
 # 커스텀 CSS 추가
 st.markdown("""
