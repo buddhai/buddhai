@@ -30,14 +30,14 @@ def remove_citation_markers(text):
     return re.sub(r'【\d+:\d+†source】', '', text)
 
 # 단일 페르소나 설정
-ai_persona = "불교 AI 스님"
+ai_persona = "스님 AI"
 ai_icon = "🧘"
 
 # 사용자 아이콘 설정
 user_icon = "🧑🏻‍💻"
 
 # Streamlit 페이지 설정
-st.set_page_config(page_title="불교 AI 스님과의 대화", page_icon="🧘", layout="wide")
+st.set_page_config(page_title="스님 AI와의 대화", page_icon="🧘", layout="wide")
 
 # 커스텀 CSS 추가
 st.markdown("""
@@ -103,7 +103,7 @@ st.markdown("""
 # 제목과 초기화 버튼을 하나의 컨테이너에 배치
 col1, col2 = st.columns([3, 1])
 with col1:
-    st.title(f"{ai_icon} {ai_persona}과의 대화")
+    st.title(f"{ai_icon} {ai_persona}와의 대화")
 with col2:
     if st.button("대화 초기화", key="reset_button"):
         st.session_state.messages = []
@@ -125,7 +125,11 @@ if st.session_state.thread_id is None:
 
 # 초기 안내 메시지 추가 (한 번만 실행되도록 수정)
 if not st.session_state.initialized:
+<<<<<<< HEAD
     initial_message = "안녕하세요! 불교친구 연두부와 대화를 시작합니다. 어떤 질문이 있으신가요?"
+=======
+    initial_message = "안녕하세요! 스님 AI와 대화를 시작합니다. 어떤 질문이 있으신가요? \n 아래 입력창에 고민이나 질문을 입력하세요."
+>>>>>>> b4662e5e18ae33ce99535b15d900d227bbae5f7c
     st.session_state.messages.append({"role": "assistant", "content": initial_message})
     st.session_state.initialized = True
 
@@ -175,7 +179,7 @@ if prompt:
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=ai_icon):
             message_placeholder = st.empty()
-            message_placeholder.markdown("답변을 생각 중입니다... (최대 30초)")
+            message_placeholder.markdown("답변을 고민중입니다...")
             
             full_response = ""
             
