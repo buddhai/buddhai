@@ -31,13 +31,13 @@ def remove_citation_markers(text):
 
 # 단일 페르소나 설정
 ai_persona = "스님 AI"
-ai_icon = "🧘‍♂️"
+ai_icon = "🙏"
 
 # 사용자 아이콘 설정
 user_icon = "🧑🏻‍💻"
 
 # Streamlit 페이지 설정
-st.set_page_config(page_title="스님 AI", page_icon="🧘‍♂️", layout="wide")
+st.set_page_config(page_title="스님 AI", page_icon="🙏", layout="wide")
 
 # 커스텀 CSS 추가
 st.markdown("""
