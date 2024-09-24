@@ -175,7 +175,7 @@ if prompt:
         # 응답 대기 및 표시
         with st.chat_message("assistant", avatar=ai_icon):
             message_placeholder = st.empty()
-            message_placeholder.markdown("답변을 생각 중입니다... (최대 30초)")
+            message_placeholder.markdown("답변을 생각 중입니다...")
             
             full_response = ""
             
